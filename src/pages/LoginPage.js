@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authAPI, saveAuthData } from '../services/api'; // ✅ Updated import path
+import { authAPI, saveAuthData } from '../api';
 import { queryClient } from '../index';
 import './LoginPage.css';
 
@@ -120,12 +120,23 @@ const Icons = {
   ),
 };
 
-/* ---------- Extract subdomain (e.g., DAT2024001 from DAT2024001.yourapp.com) ---------- */
+/* ---------- Extract subdomain safely ---------- */
 const getSubdomain = () => {
   const host = window.location.hostname;
+  
+  // 1. Ignore localhost and Vercel preview URLs so they don't act as a school code!
+  if (host.includes('localhost') || host.includes('vercel.app')) {
+    return null;
+  }
+
   const parts = host.split('.');
+  
+  // 2. Check if it's a subdomain (e.g., fountainhills.bimtechsolutions.com.ng)
+  // Note: If your backend expects "DAT2024001" as the schoolCode, 
+  // you should make sure your AdminModal generates that as the URL, 
+  // OR your backend login API accepts the slug "fountainhills".
   if (parts.length > 2 && parts[0] !== 'www') {
-    return parts[0].toUpperCase();
+    return parts[0].toUpperCase(); 
   }
   return null;
 };
@@ -209,9 +220,7 @@ const LoginPage = () => {
 
       if (result.success) {
         queryClient.clear();
-        // ✅ result.user now automatically contains `lockedModules` from the backend
         saveAuthData(result.token, result.user);
-        
         switch (result.user.role) {
           case 'admin': navigate('/admin'); break;
           case 'teacher': navigate('/teacher'); break;
