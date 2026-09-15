@@ -1,0 +1,12 @@
+node_modules/
+.env
+
+.env
+.env
+.env
+.env.local
+.env.*.local
+node_modules/
+dist/
+build/.env
+.env

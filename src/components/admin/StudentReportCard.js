@@ -1,0 +1,832 @@
+import React, { useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { reportCardsAPI, classTeacherCommentsAPI, attendanceAPI, studentsAPI } from '../../api';
+import { useSchoolSettings, API_BASE_URL } from '../../hooks/useSchoolSettings';
+import './StudentReportCard.css';
+
+// ✅ FIXED: Prisma migration — IDs are now Int `id` (was Mongo `_id`)
+const docId = (o) => o?._id ?? o?.id ?? null;
+
+// ✅ Helper to build student photo URL
+const buildStudentPhotoUrl = (student) => {
+  if (!student) return null;
+
+  // 1. profileImage as object with 'url'
+  if (student.profileImage?.url) {
+    const imageUrl = student.profileImage.url;
+    if (imageUrl.startsWith('http')) return imageUrl;
+    if (imageUrl.startsWith('/')) return `${API_BASE_URL}${imageUrl}`;
+    return `${API_BASE_URL}/${imageUrl}`;
+  }
+
+  // 2. profileImage as direct string
+  if (typeof student.profileImage === 'string' && student.profileImage.trim() !== '') {
+    const imageUrl = student.profileImage;
+    if (imageUrl.startsWith('http')) return imageUrl;
+    if (imageUrl.startsWith('/')) return `${API_BASE_URL}${imageUrl}`;
+    return `${API_BASE_URL}/${imageUrl}`;
+  }
+
+  // 3. Other possible direct string fields
+  const fallbackFields = ['profile_image', 'image', 'photo', 'profileImageUrl', 'passport'];
+  for (const field of fallbackFields) {
+    const val = student[field];
+    if (typeof val === 'string' && val.trim() !== '') {
+      if (val.startsWith('http')) return val;
+      if (val.startsWith('/')) return `${API_BASE_URL}${val}`;
+      return `${API_BASE_URL}/${val}`;
+    }
+    if (val?.url) {
+      const imageUrl = val.url;
+      if (imageUrl.startsWith('http')) return imageUrl;
+      if (imageUrl.startsWith('/')) return `${API_BASE_URL}${imageUrl}`;
+      return `${API_BASE_URL}/${imageUrl}`;
+    }
+  }
+
+  // 4. Final fallback: construct URL from student ID
+  const studentId = docId(student);
+  if (studentId != null) {
+    return `${API_BASE_URL}/uploads/students/${studentId}/profile-image`;
+  }
+
+  return null;
+};
+
+const StudentReportCard = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const studentId = window.location.pathname.split('/').pop();
+  const termId = searchParams.get('termId');
+
+  // ✅ LIVE SCHOOL SETTINGS — name, address, website, email, logo, principal signature
+  const school = useSchoolSettings();
+
+  const defaultPsychomotor = useMemo(() => [
+    { skill: 'Handwriting', rating: 'A' },
+    { skill: 'Sports', rating: 'B' },
+    { skill: 'Drawing & Painting', rating: 'A' },
+    { skill: 'Music & Drama', rating: 'B' },
+    { skill: 'Crafts', rating: 'C' },
+    { skill: 'Cleanliness', rating: 'A' },
+    { skill: 'Punctuality', rating: 'B' },
+    { skill: 'Politeness', rating: 'A' },
+  ], []);
+
+  const normalizePsychomotorRating = (rating) => {
+    if (!rating) return '';
+    const upperRating = rating.toString().toUpperCase().trim();
+    if (['A', 'B', 'C'].includes(upperRating)) {
+      return upperRating;
+    }
+    return 'C';
+  };
+
+  const { data: reportResponse, isLoading: isReportLoading, isError: isReportError } = useQuery({
+    queryKey: ['student-report', studentId, termId],
+    queryFn: () => reportCardsAPI.getStudentReport(studentId, { termId }),
+    enabled: !!studentId && !!termId,
+    staleTime: 60000,
+  });
+
+  // ============================================
+  // ✅ FETCH ALL STUDENTS (tolerant of missing export/shape)
+  // ============================================
+  const { data: allStudentsResponse } = useQuery({
+    queryKey: ['all-students-for-photos'],
+    queryFn: () => (studentsAPI?.getAll ? studentsAPI.getAll() : Promise.resolve(null)),
+    staleTime: 300000,
+    retry: 0,
+  });
+
+  const report = reportResponse?.data || null;
+
+  // ============================================
+  // ✅ PHOTO LOOKUP MAP — docId tolerant, accepts object or string profileImage
+  // ============================================
+  const studentPhotosMap = useMemo(() => {
+    const map = {};
+    const list = allStudentsResponse?.data || allStudentsResponse?.students || [];
+    if (Array.isArray(list)) {
+      list.forEach((student) => {
+        const sid = docId(student);
+        if (sid != null && student.profileImage) {
+          map[sid.toString()] = student.profileImage;
+        }
+      });
+    }
+    return map;
+  }, [allStudentsResponse]);
+
+  // ✅ FIXED: class is a SIBLING of student in the API response
+  const classId = docId(report?.class) ?? docId(report?.student?.class) ?? null;
+  const termName = report?.term?.name || null;
+  const sessionName = report?.session?.name || null;
+
+  // ============================================
+  // CLASS TEACHER COMMENT — API embeds it; separate fetch kept as fallback
+  // ============================================
+  const { data: classTeacherCommentFallback } = useQuery({
+    queryKey: ['class-teacher-comment', classId, termName, sessionName, studentId],
+    queryFn: async () => {
+      const response = await classTeacherCommentsAPI.getByClass(classId, { term: termName, session: sessionName });
+
+      let comments = [];
+      if (Array.isArray(response)) comments = response;
+      else if (response?.data && Array.isArray(response.data)) comments = response.data;
+      else if (response?.comments && Array.isArray(response.comments)) comments = response.comments;
+
+      // ✅ String-safe matching — URL studentId is a string, backend ids are Ints
+      const studentComment = comments.find((c) => {
+        const cStudentId =
+          c.studentId ??
+          c.student_id ??
+          (typeof c.student === 'object' ? docId(c.student) : c.student);
+        if (cStudentId == null) return false;
+        return String(cStudentId) === String(studentId);
+      });
+
+      return studentComment?.comment || '';
+    },
+    enabled: !!classId && !!termName && !!sessionName && !!studentId,
+    staleTime: 60000,
+  });
+
+  const { data: attendanceResponse } = useQuery({
+    queryKey: ['student-attendance', classId, termName, sessionName, studentId],
+    queryFn: async () => {
+      const response = await attendanceAPI.getStudentCountsByClass(classId, {
+        term: termName,
+        session: sessionName
+      });
+
+      if (!response?.success) return { timesPresent: '', timesSchoolOpen: '', timesAbsent: '' };
+
+      const schoolOpenDays = response.schoolOpenDays || response.data?.schoolOpenDays || '';
+      const students = Array.isArray(response.data) ? response.data : [];
+
+      // ✅ docId + string-safe matching (backend studentId is Int, URL id is string)
+      const studentRecord = students.find((s) => {
+        const sId = s.studentId ?? s.student_id ?? (typeof s.student === 'object' ? docId(s.student) : s.student);
+        if (sId == null) return false;
+        return String(sId) === String(studentId);
+      });
+
+      const timesPresent = studentRecord?.timesPresent ?? studentRecord?.times_present ?? '';
+      const timesSchoolOpen = typeof schoolOpenDays === 'number' ? schoolOpenDays : '';
+
+      const timesAbsent = (timesPresent !== '' && timesSchoolOpen !== '' && timesSchoolOpen >= timesPresent)
+        ? timesSchoolOpen - timesPresent
+        : '';
+
+      return { timesPresent, timesSchoolOpen, timesAbsent };
+    },
+    enabled: !!classId && !!termName && !!sessionName && !!studentId,
+    staleTime: 60000,
+  });
+
+  const isLoading = isReportLoading;
+  const error = isReportError ? 'Failed to load report data.' : null;
+
+  const psychomotorSkills = useMemo(() => {
+    const skills = report?.psychomotor?.length ? report.psychomotor : defaultPsychomotor;
+    return skills.map(skill => ({
+      ...skill,
+      rating: normalizePsychomotorRating(skill.rating)
+    }));
+  }, [report?.psychomotor, defaultPsychomotor]);
+
+  const timesPresent = attendanceResponse?.timesPresent || report?.attendance?.timesPresent || report?.timesPresent || '';
+  const timesSchoolOpen = attendanceResponse?.timesSchoolOpen || report?.attendance?.timesSchoolOpen || report?.timesSchoolOpen || '';
+
+  const timesAbsent = attendanceResponse?.timesAbsent !== undefined
+    ? attendanceResponse.timesAbsent
+    : ((timesPresent !== '' && timesSchoolOpen !== '' && timesSchoolOpen >= timesPresent)
+      ? timesSchoolOpen - timesPresent
+      : '');
+
+  const formatDate = (date) => date
+    ? new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : 'N/A';
+
+  // ============================================
+  // ✅ docId for the robust image URL lookup
+  // ============================================
+  const studentIdStr = docId(report?.student)?.toString() || '';
+  const studentWithPhoto = {
+    ...report?.student,
+    profileImage: report?.student?.profileImage || studentPhotosMap[studentIdStr] || null
+  };
+  const studentImage = buildStudentPhotoUrl(studentWithPhoto);
+
+  const studentInitials = report?.student
+    ? `${(report.student.firstName || '')[0] || ''}${(report.student.lastName || '')[0] || ''}`.toUpperCase()
+    : 'S';
+
+  // ✅ Prefer the embedded comment from getStudentReport; fall back to the separate fetch
+  const classTeacherCommentText = report?.classTeacherComment || classTeacherCommentFallback || '';
+
+  // Isolated robust print handler with strict A4 borders
+  const handlePrint = () => {
+    const printElement = document.querySelector('.a4-document');
+    if (!printElement) return;
+
+    const clonedElement = printElement.cloneNode(true);
+    const screenControls = clonedElement.querySelector('.screen-controls');
+    if (screenControls) screenControls.remove();
+
+    const headStyles = Array.from(document.head.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(el => el.outerHTML)
+      .join('\n');
+
+    const a4PrintStyles = `
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .a4-document {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 14mm 16mm !important;
+        background-color: #ffffff !important;
+        position: relative;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      /* Elegant Double Frame Border */
+      .a4-document::before,
+      .a4-document::after {
+        content: "" !important;
+        position: absolute !important;
+        pointer-events: none !important;
+        z-index: 1000 !important;
+        border: 3px solid #111 !important;
+        border-radius: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .a4-document::before {
+        inset: 0 !important;
+      }
+      .a4-document::after {
+        inset: 7px !important;
+        border-width: 1.5px !important;
+      }
+      .school-name {
+        font-size: 14pt !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.8px !important;
+      }
+      .school-address {
+        font-size: 7pt !important;
+        color: #333 !important;
+        letter-spacing: 0.3px !important;
+      }
+      .header-top-row {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+      }
+      .header-logo-wrap {
+        flex-shrink: 0 !important;
+      }
+      .header-logo {
+        width: 225px !important;
+        height: 225px !important;
+        object-fit: contain !important;
+      }
+      .header-center-info {
+        flex: 1 !important;
+        text-align: center !important;
+      }
+      .student-photo-wrap {
+        flex-shrink: 0 !important;
+        width: 90px !important;
+        height: 90px !important;
+      }
+      .student-photo-wrap img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+      }
+      .comments-container {
+        display: flex !important;
+        gap: 20px !important;
+      }
+      .comment-box-elegant {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      .comment-text-area {
+        flex: 1 !important;
+      }
+      .principal-sig-img {
+        width: 40px !important;
+        height: auto !important;
+        object-fit: contain !important;
+      }
+    `;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      alert('Please allow pop-ups for this site to print the report card.');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <title>Student Report Card</title>
+        ${headStyles}
+        <style>${a4PrintStyles}</style>
+      </head>
+      <body>
+        ${clonedElement.outerHTML}
+        <script>
+          window.onafterprint = () => window.close();
+          document.fonts.ready.then(() => {
+            setTimeout(() => window.print(), 250);
+          });
+        <\/script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  // ✅ Clear message when URL params are missing (was silent blank)
+  if (!studentId || !termId) {
+    return (
+      <div className="print-error-page">
+        <h3>Missing Parameters</h3>
+        <p>This page requires a student ID in the URL and <code>termId</code> as a query parameter.</p>
+        <p style={{ fontSize: 12, color: '#888' }}>
+          Got: studentId={studentId || '—'} · termId={termId || '—'}
+        </p>
+        <button onClick={() => navigate(-1)}>Go Back</button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="print-loading">
+        <div className="spinner"></div>
+        <p>Generating Report Sheet...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="print-error-page">
+        <h3>Error Loading Report</h3>
+        <p>{error}</p>
+        <button onClick={() => navigate(-1)}>Go Back</button>
+      </div>
+    );
+  }
+
+  if (!report) {
+    return (
+      <div className="print-error-page">
+        <p>Report card not found.</p>
+        <button onClick={() => navigate(-1)}>Go Back</button>
+      </div>
+    );
+  }
+
+  // ✅ Safe extraction
+  const term = report.term || {};
+  const session = report.session || {};
+  const student = report.student || {};
+  const cls = report.class || student.class || {};
+  const stats = report.statistics || {};
+  const subjects = Array.isArray(report.subjects) ? report.subjects : [];
+  const totalScoreObtainable = subjects.length * 100;
+
+  // ✅ LIVE school identity (no hardcoded fallbacks)
+  const schoolName = school.name;
+  const schoolAddress = school.address;
+  const schoolLogoSrc = school.logoUrl;
+  const principalSignatureSrc = school.signatureUrl;
+
+  return (
+    <div className="report-sheet-wrapper">
+      {/* Inline style to preview the exact beautiful border on the screen */}
+      <style>{`
+        .a4-document {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 14mm 16mm;
+          background-color: #ffffff;
+          position: relative;
+          box-sizing: border-box;
+          margin: 20px auto;
+          box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        /* Elegant Double Frame Border */
+        .a4-document::before,
+        .a4-document::after {
+          content: "";
+          position: absolute;
+          pointer-events: none;
+          z-index: 1000;
+          border: 3px solid #111;
+        }
+        .a4-document::before {
+          inset: 0;
+        }
+        .a4-document::after {
+          inset: 7px;
+          border-width: 1.5px;
+        }
+        .school-name {
+          font-size: 14pt;
+          font-weight: 800;
+          letter-spacing: 0.8px;
+          line-height: 1.3;
+        }
+        .school-address {
+          font-size: 7pt;
+          color: #333;
+          letter-spacing: 0.3px;
+          margin: 0.5mm 0 0 0;
+          line-height: 1.2;
+        }
+        .header-top-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          gap: 10px;
+        }
+        .header-logo-wrap {
+          flex-shrink: 0;
+        }
+        .header-logo {
+          width: 75px;
+          height: 75px;
+          object-fit: contain;
+        }
+        .header-center-info {
+          flex: 1;
+          text-align: center;
+        }
+        .student-photo-wrap {
+          flex-shrink: 0;
+          width: 90px;
+          height: 90px;
+          border: 2px solid #333;
+          border-radius: 4px;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: #f5f5f5;
+        }
+        .student-photo-wrap img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .student-photo-placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+          color: #555;
+          font-size: 26px;
+          font-weight: 700;
+          letter-spacing: 1px;
+          user-select: none;
+        }
+        .comments-container {
+          display: flex;
+          gap: 20px;
+        }
+        .comment-box-elegant {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        .comment-text-area {
+          flex: 1;
+        }
+        .principal-sig-img {
+          width: 40px;
+          height: auto;
+          object-fit: contain;
+        }
+      `}</style>
+
+      <div className="screen-controls">
+        <button onClick={() => navigate(-1)} className="ctrl-btn back">&larr; Back</button>
+        <button onClick={handlePrint} className="ctrl-btn print">Print Report Sheet</button>
+      </div>
+
+      <div className="a4-document">
+
+        <header className="school-header-elegant">
+          <div className="header-ornament top"></div>
+          <div className="header-top-row">
+            <div className="header-logo-wrap">
+              {/* ✅ LIVE school logo from site settings */}
+              {schoolLogoSrc && (
+                <img
+                  src={schoolLogoSrc}
+                  alt={`${schoolName || 'School'} Logo`}
+                  className="header-logo"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )}
+            </div>
+            <div className="header-center-info">
+              {/* ✅ LIVE school name + address from site settings */}
+              <h1 className="school-name">{schoolName}</h1>
+              <p className="school-address">{schoolAddress}</p>
+
+              {/* ✅ Website & Email — each on its own line, above the title */}
+              {(school.website || school.email) && (
+                <div style={{ margin: '0.4mm 0 0 0', lineHeight: 1.45 }}>
+                  {school.website && (
+                    <p style={{ margin: 0, fontSize: '7pt', color: '#333', letterSpacing: '0.3px', textAlign: 'center' }}>
+                      {school.website}
+                    </p>
+                  )}
+                  {school.email && (
+                    <p style={{ margin: 0, fontSize: '7pt', color: '#333', letterSpacing: '0.3px', textAlign: 'center' }}>
+                      {school.email}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <h2 className="doc-title">STUDENT ACADEMIC REPORT CARD</h2>
+              <div className="header-meta-box">
+                <span className="meta-text">Term <strong>{term.name}</strong></span>
+                <span className="meta-divider"></span>
+                <span className="meta-text">Session <strong>{session.name}</strong></span>
+              </div>
+            </div>
+            <div className="student-photo-wrap">
+              {studentImage ? (
+                <img src={studentImage} alt={`${student.firstName} ${student.lastName}`} />
+              ) : (
+                <div className="student-photo-placeholder">
+                  {studentInitials}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="header-ornament bottom"></div>
+        </header>
+
+        <div className="bio-data-section">
+          <div className="bio-grid">
+            <div className="bio-item">
+              <span className="bio-label">Name of Student</span>
+              <span className="bio-value name-highlight">
+                {student.firstName} {student.lastName}
+              </span>
+            </div>
+            <div className="bio-item">
+              <span className="bio-label">Admission No.</span>
+              <span className="bio-value">{student.admissionNumber || '—'}</span>
+            </div>
+            {/* ✅ FIXED: class is a sibling of student in the API response */}
+            <div className="bio-item">
+              <span className="bio-label">Class</span>
+              <span className="bio-value">
+                {cls.name} {cls.section}
+              </span>
+            </div>
+            <div className="bio-item">
+              <span className="bio-label">Gender</span>
+              <span className="bio-value">{student.gender || '—'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grades-container">
+          <table className="grades-table-elegant">
+            <thead>
+              <tr>
+                <th rowSpan="2" className="th-sn">S/N</th>
+                <th rowSpan="2" className="th-subject">SUBJECTS</th>
+                <th colSpan="4" className="th-ca-header">CONTINUOUS ASSESSMENT (40)</th>
+                <th rowSpan="2" className="th-score">EXAM<br/>(60)</th>
+                <th rowSpan="2" className="th-score">TOTAL<br/>(100)</th>
+                <th rowSpan="2" className="th-grade">GRADE</th>
+                <th rowSpan="2" className="th-remark">REMARK</th>
+              </tr>
+              <tr>
+                <th className="th-sub-ca">Test<br/>(20)</th>
+                <th className="th-sub-ca">Notes<br/>(10)</th>
+                <th className="th-sub-ca">Assign<br/>(10)</th>
+                <th className="th-sub-ca">Total<br/>(40)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subjects.map((sub, i) => (
+                <tr key={sub.subjectId ?? docId(sub) ?? i}>
+                  <td className="td-center">{i + 1}</td>
+                  {/* ✅ FIXED: flat subjectName from the API (nested subject kept as fallback) */}
+                  <td className="td-subject">{sub.subjectName || sub.subject?.name || '—'}</td>
+                  <td className="td-center">{sub.testScore ?? 0}</td>
+                  <td className="td-center">{sub.noteTakingScore ?? 0}</td>
+                  <td className="td-center">{sub.assignmentScore ?? 0}</td>
+                  <td className="td-center td-bold">{sub.totalCA ?? 0}</td>
+                  <td className="td-center td-bold">{sub.examScore ?? 0}</td>
+                  <td className="td-center td-bold td-total">{sub.totalScore ?? 0}</td>
+                  <td className="td-center td-bold">{sub.grade || '–'}</td>
+                  <td className="td-remark">{sub.remark || ''}</td>
+                </tr>
+              ))}
+              {subjects.length === 0 && (
+                <tr>
+                  <td colSpan="10" className="td-empty">No grades recorded for this term.</td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="summary-row">
+                <td colSpan="7" className="td-right summary-label">TOTAL SCORE OBTAINABLE:</td>
+                <td className="td-center td-total">{totalScoreObtainable}</td>
+                <td colSpan="2"></td>
+              </tr>
+              <tr className="summary-row">
+                <td colSpan="7" className="td-right summary-label">TOTAL SCORE OBTAINED:</td>
+                <td className="td-center td-total">{stats.totalScore ?? 0}</td>
+                <td colSpan="2"></td>
+              </tr>
+              <tr className="summary-row">
+                <td colSpan="7" className="td-right summary-label">STUDENT AVERAGE:</td>
+                <td className="td-center td-total">{stats.averageScore ?? 0}%</td>
+                <td colSpan="2"></td>
+              </tr>
+              {/* ✅ NEW: position — provided by statistics.position */}
+              <tr className="summary-row">
+                <td colSpan="7" className="td-right summary-label">STUDENT POSITION:</td>
+                <td className="td-center td-total">{stats.position ? `${stats.position}` : '—'}</td>
+                <td colSpan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div className="grading-key-elegant">
+          <span className="key-label">GRADING SCALE:</span>
+          <span className="key-text">
+            A (Excellent) | B (Very Good) | C (Good) | D (Fair) | E (Poor) | F (Fail)
+          </span>
+        </div>
+
+        <div className="attendance-section">
+          <div className="attendance-title">ATTENDANCE RECORD</div>
+          <div className="attendance-grid">
+            <div className="attendance-card">
+              <span className="attendance-label">No. of Times School Opened</span>
+              <span className="attendance-value">
+                {timesSchoolOpen !== '' ? timesSchoolOpen : '––––'}
+              </span>
+            </div>
+            <div className="attendance-card">
+              <span className="attendance-label">No. of Times Present</span>
+              <span className="attendance-value present">
+                {timesPresent !== '' ? timesPresent : '––––'}
+              </span>
+            </div>
+            <div className="attendance-card">
+              <span className="attendance-label">No. of Times Absent</span>
+              <span className="attendance-value absent">
+                {timesAbsent !== '' ? timesAbsent : '––––'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="psychomotor-section-compact">
+          <div className="psychomotor-title-compact">
+            PSYCHOMOTOR / AFFECTIVE DOMAIN
+            <span className="psychomotor-key-inline">
+              &nbsp; (A – Excellent | B – Very Good | C – Good)
+            </span>
+          </div>
+          <table className="psychomotor-table-compact">
+            <thead>
+              <tr>
+                <th className="pmc-th-sn">S/N</th>
+                <th className="pmc-th-skill">Skill / Trait</th>
+                <th className="pmc-th-rating">Rating</th>
+                <th className="pmc-th-sn">S/N</th>
+                <th className="pmc-th-skill">Skill / Trait</th>
+                <th className="pmc-th-rating">Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const half = Math.ceil(psychomotorSkills.length / 2);
+                const leftCol = psychomotorSkills.slice(0, half);
+                const rightCol = psychomotorSkills.slice(half);
+                const rows = Math.max(leftCol.length, rightCol.length);
+                return Array.from({ length: rows }, (_, idx) => (
+                  <tr key={idx}>
+                    <td className="pmc-td-sn">{idx + 1}</td>
+                    <td className="pmc-td-skill">{leftCol[idx]?.skill || ''}</td>
+                    <td className="pmc-td-rating">
+                      <span className="pmc-rating-letter">{leftCol[idx]?.rating || '–'}</span>
+                    </td>
+                    <td className="pmc-td-sn">{half + idx + 1}</td>
+                    <td className="pmc-td-skill">{rightCol[idx]?.skill || ''}</td>
+                    <td className="pmc-td-rating">
+                      <span className="pmc-rating-letter">{rightCol[idx]?.rating || '–'}</span>
+                    </td>
+                  </tr>
+                ));
+              })()}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="comments-container">
+          <div className="comment-box-elegant">
+            <div className="comment-title" style={{ textAlign: 'center' }}>CLASS TEACHER'S COMMENT</div>
+            <div className="comment-text-area">
+              {classTeacherCommentText
+                ? <><strong>{student.firstName} {student.lastName}</strong> - {classTeacherCommentText}</>
+                : <span className="blank-line">................................................................................</span>
+              }
+            </div>
+            <div className="signature-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div className="sig-line"></div>
+              <span className="sig-text">Class Teacher</span>
+            </div>
+          </div>
+
+          <div className="comment-box-elegant">
+            <div className="comment-title" style={{ textAlign: 'center' }}>PRINCIPAL'S COMMENT</div>
+            <div className="comment-text-area">
+              {report.principalComment
+                ? <>{report.principalComment}</>
+                : <span className="blank-line">................................................................................</span>
+              }
+            </div>
+            <div className="signature-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {/* ✅ LIVE principal signature from site settings */}
+              {principalSignatureSrc && (
+                <img
+                  src={principalSignatureSrc}
+                  alt="Principal's Signature"
+                  className="principal-sig-img"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )}
+              <div className="sig-line"></div>
+              <span className="sig-text">Principal/Headteacher</span>
+            </div>
+          </div>
+        </div>
+
+        <footer className="sheet-footer-elegant">
+          <div className="footer-dates-grid">
+            <div className="footer-date-item">
+              <span className="fd-label">Term Begins:</span>
+              <span className="fd-value">{formatDate(term.startDate)}</span>
+            </div>
+            <div className="footer-date-item">
+              <span className="fd-label">Term Ends:</span>
+              <span className="fd-value">{formatDate(term.endDate)}</span>
+            </div>
+          </div>
+          {term.nextTermBegins && (
+            <div className="next-term-highlight">
+              <span className="nt-label">NEXT TERM BEGINS:</span>
+              <span className="nt-date">{formatDate(term.nextTermBegins)}</span>
+            </div>
+          )}
+        </footer>
+
+      </div>
+    </div>
+  );
+};
+
+export default StudentReportCard;

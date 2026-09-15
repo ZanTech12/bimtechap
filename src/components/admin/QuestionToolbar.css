@@ -1,0 +1,172 @@
+/* ============================================================
+   QuestionToolbar — grouped formatting toolbar
+   Layout:  [ B I U ]  |gap|  [ x² x₂ ]  |gap|  [ 🖼️ 🔗 ]
+   ============================================================ */
+
+.qtb {
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+
+/* ---------- Toolbar strip ---------- */
+.qtb__bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;                       /* ← the gap between groups */
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+}
+
+/* ---------- Groups (visual capsules) ---------- */
+.qtb__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #f1f5f9;
+  border: 1px solid #e8edf3;
+}
+
+/* ---------- Gap separator between groups ---------- */
+.qtb__sep {
+  width: 1px;
+  height: 22px;
+  background: linear-gradient(180deg, transparent, #cbd5e1, transparent);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* ---------- Buttons ---------- */
+.qtb__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 34px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+  font-family: inherit;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+.qtb__btn:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.qtb__btn:active {
+  transform: scale(0.94);
+}
+.qtb__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Image upload label (special styling) ---------- */
+.qtb__btn--image {
+  background: linear-gradient(135deg, #4f46e5, #6d28d9);
+  color: #ffffff;
+  border: none;
+  padding: 5px 12px;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+.qtb__btn--image:hover {
+  background: linear-gradient(135deg, #4338ca, #5b21b6);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
+  transform: translateY(-1px);
+}
+.qtb__btn--image:active {
+  transform: scale(0.97);
+}
+.qtb__btn--busy {
+  opacity: 0.75;
+  cursor: progress !important;
+}
+/* the hidden file input inside the label */
+.qtb__btn--image input[type="file"] {
+  display: none;
+}
+
+/* ---------- Spinner (uploading state) ---------- */
+.qtb__spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: qtbSpin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes qtbSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Error line ---------- */
+.qtb__error {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.qtb__error::before {
+  content: "⚠";
+}
+
+/* ---------- Focus visibility ---------- */
+.qtb__btn:focus-visible,
+.qtb__btn--image:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* ---------- Compact on small screens ---------- */
+@media (max-width: 480px) {
+  .qtb__bar {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .qtb__group {
+    gap: 3px;
+    padding: 2px;
+  }
+  .qtb__btn {
+    min-width: 30px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+}
+/* BMT-style inline question figures */
+.qs-question img,
+.question-text img {
+  display: inline-block;
+  max-width: 260px;
+  max-height: 200px;
+  height: auto;
+  vertical-align: middle;
+  margin: 6px 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
