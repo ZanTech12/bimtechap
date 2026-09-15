@@ -124,20 +124,21 @@ const Icons = {
 const getSubdomain = () => {
   const host = window.location.hostname;
   
-  // 1. Ignore localhost and Vercel preview URLs so they don't act as a school code!
+  // 1. Ignore localhost and Vercel preview URLs
   if (host.includes('localhost') || host.includes('vercel.app')) {
     return null;
   }
 
   const parts = host.split('.');
   
-  // 2. Check if it's a subdomain (e.g., fountainhills.bimtechsolutions.com.ng)
-  // Note: If your backend expects "DAT2024001" as the schoolCode, 
-  // you should make sure your AdminModal generates that as the URL, 
-  // OR your backend login API accepts the slug "fountainhills".
-  if (parts.length > 2 && parts[0] !== 'www') {
+  // 2. Check for okispecial.com.ng structure. 
+  // parts[0] is the subdomain. If it's missing or 'www', return null.
+  // Example: brainfield.okispecial.com.ng -> length is 4. parts[0] is 'brainfield'
+  // Example: okispecial.com.ng -> length is 3. Returns null.
+  if (parts.length > 3 && parts[0] !== 'www') {
     return parts[0].toUpperCase(); 
   }
+  
   return null;
 };
 
