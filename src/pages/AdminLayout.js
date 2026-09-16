@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
 import AdminDashboard from '../components/admin/AdminDashboard';
@@ -16,11 +15,7 @@ import RecycleBin from '../components/admin/RecycleBin';
 import Settings from '../components/admin/Settings';
 import SiteSettings from '../components/admin/SiteSettings';
 import BulkQuestionConverter from '../components/admin/BulkQuestionConverter';
-
-// E-NOTES IMPORT
 import ENotesManager from '../pages/ENotesManager';
-
-// GRADING SYSTEM IMPORTS
 import SessionsManager from '../components/admin/SessionsManager';
 import TermsManager from '../components/admin/TermsManager';
 import GradingSystem from '../components/admin/GradingSystem';
@@ -30,14 +25,8 @@ import ReportCards from '../components/admin/ReportCards';
 import ClassReportCards from '../components/admin/ClassReportCards';
 import StudentReportCard from '../components/admin/StudentReportCard';
 import ReportCardsPrintView from '../components/admin/ReportCardsPrintView';
-
-// CA TEACHER PROGRESS IMPORT
 import AdminCATeacherProgress from '../components/admin/AdminCATeacherProgress';
-
-// STUDENTS CLASSES & SCORES IMPORT
 import StudentsClassesScoresPage from '../components/admin/StudentsClassesScoresPage';
-
-// BROADSHEET IMPORT
 import Broadsheet from '../components/admin/Broadsheet';
 
 import './adminlayout.css';
@@ -73,38 +62,44 @@ const adminMenuItems = [
 ];
 
 const AdminLayout = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Lock body scroll when mobile sidebar is open
+  // Close drawer if screen resizes to desktop
   useEffect(() => {
-    if (sidebarOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsDrawerOpen(false);
+      }
     };
-  }, [sidebarOpen]);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = isDrawerOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isDrawerOpen]);
 
   return (
-    <div className={`layout-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className={`layout-container ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       
       <Sidebar
         items={adminMenuItems}
-        collapsed={sidebarCollapsed}
-        isOpen={sidebarOpen}
-        onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
-        onToggleOpen={() => setSidebarOpen(prev => !prev)}
+        collapsed={isCollapsed}
+        isOpen={isDrawerOpen}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        onCloseDrawer={() => setIsDrawerOpen(false)}
       />
 
       <div className="main-content">
         <Header
           title="Admin Panel"
-          onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
-          onMobileMenuClick={() => setSidebarOpen(prev => !prev)}
+          onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
+          onMobileMenuClick={() => setIsDrawerOpen(!isDrawerOpen)}
         />
+        
         <div className="page-content">
           <Routes>
             <Route path="/" element={<AdminDashboard />} />
@@ -140,3 +135,5 @@ const AdminLayout = () => {
     </div>
   );
 };
+
+export default AdminLayout;

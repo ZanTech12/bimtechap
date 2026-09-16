@@ -24,7 +24,7 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
     };
   }, []);
 
-  // Close dropdown on route change or scroll
+  // Close dropdown on route change
   useEffect(() => {
     setMenuOpen(false);
   }, [navigate]);
@@ -35,10 +35,9 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
     navigate('/login');
   };
 
+  // Handle both Desktop Collapse and Mobile Drawer based on screen width
   const handleToggleSidebar = () => {
     setMenuOpen(false);
-    
-    // Use 1024px as the breakpoint because that's where the sidebar turns into a drawer
     if (window.innerWidth < 1024) {
       if (onMobileMenuClick) onMobileMenuClick();
     } else {

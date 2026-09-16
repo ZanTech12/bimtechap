@@ -3,27 +3,22 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import './sidebar.css';
 
-// --- Icons ---
 const ChevronIcon = ({ collapsed }) => (
-  <svg 
-    width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-    style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease' }}
-  >
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease' }}>
     <polyline points="15 18 9 12 15 6"></polyline>
   </svg>
 );
 
 const CloseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"></line>
-    <line x1="6" y1="6" x2="18" y2="18"></line>
+    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
   </svg>
 );
 
-const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onToggleOpen }) => {
+const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onCloseDrawer }) => {
   const location = useLocation();
   const [hoveredIndex, setHoveredIndex] = useState(null);
-
   const site = useSchoolSettings();
   const [shortName, setShortName] = useState('School');
 
@@ -31,51 +26,38 @@ const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onToggleOpen }) =
     if (site.shortName) setShortName(site.shortName);
   }, [site.shortName]);
 
-  const logoUrl = site.logoUrl || '';
-
+  // Close mobile drawer automatically when route changes
   useEffect(() => {
-    if (collapsed) setHoveredIndex(null);
-  }, [collapsed]);
+    onCloseDrawer();
+  }, [location.pathname, onCloseDrawer]);
+
+  const logoUrl = site.logoUrl || '';
 
   return (
     <>
-      {/* Mobile/Tablet Backdrop */}
+      {/* Mobile Backdrop */}
       <div 
         className={`sidebar-backdrop ${isOpen ? 'visible' : ''}`} 
-        onClick={onToggleOpen} 
+        onClick={onCloseDrawer} 
         aria-hidden="true"
       />
 
-      <aside
-        className={`sidebar ${collapsed ? 'collapsed' : ''} ${isOpen ? 'open' : ''}`}
-      >
-        {/* Ambient floating glow orbs */}
+      <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-ambient" aria-hidden="true">
           <div className="ambient-orb ambient-orb--1" />
           <div className="ambient-orb ambient-orb--2" />
         </div>
-
-        {/* Subtle glass layer */}
         <div className="sidebar-glass" aria-hidden="true" />
 
-        {/* Actual content — sits above effects */}
         <div className="sidebar-content">
-          {/* Header containing Logo and Toggle Buttons */}
           <div className="sidebar-header">
             <div className="sidebar-logo">
               <div className="logo-mark">
                 {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={`${shortName} Logo`}
-                    className="logo-mark-img"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
+                  <img src={logoUrl} alt="Logo" className="logo-mark-img" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 ) : (
                   <div className="logo-placeholder">
-                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>
-                      {shortName.charAt(0)}
-                    </span>
+                    <span>{shortName.charAt(0)}</span>
                   </div>
                 )}
               </div>
@@ -85,39 +67,24 @@ const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onToggleOpen }) =
               </div>
             </div>
 
-            {/* Desktop Collapse Toggle Button */}
-            <button 
-              className="sidebar-toggle-btn desktop-toggle" 
-              onClick={onToggleCollapse} 
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
+            {/* Desktop Collapse Toggle */}
+            <button className="sidebar-toggle-btn desktop-toggle" onClick={onToggleCollapse} aria-label="Toggle sidebar">
               <ChevronIcon collapsed={collapsed} />
             </button>
 
-            {/* Mobile/Tablet Close Button */}
-            <button 
-              className="sidebar-toggle-btn mobile-toggle" 
-              onClick={onToggleOpen} 
-              aria-label="Close sidebar"
-            >
+            {/* Mobile Close Button */}
+            <button className="sidebar-toggle-btn mobile-toggle" onClick={onCloseDrawer} aria-label="Close sidebar">
               <CloseIcon />
             </button>
           </div>
 
-          {/* Navigation */}
-          <nav className="sidebar-nav" aria-label="Main navigation">
+          <nav className="sidebar-nav">
             {items.map((item, index) => (
-              <div
-                key={index}
-                className="nav-item-wrapper"
-                style={{ '--stagger': `${index * 45}ms` }}
-              >
+              <div key={index} className="nav-item-wrapper" style={{ '--stagger': `${index * 45}ms` }}>
                 <NavLink
                   to={item.path}
                   end
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? 'active' : ''}`
-                  }
+                  className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
@@ -136,7 +103,6 @@ const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onToggleOpen }) =
             ))}
           </nav>
 
-          {/* Bottom accent line */}
           <div className="sidebar-footer" aria-hidden="true">
             <div className="sidebar-footer-line" />
           </div>
