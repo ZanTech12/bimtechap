@@ -11,33 +11,6 @@
   position: relative;
 }
 
-/* ---------- Backdrop (mobile only) ---------- */
-.sidebar-backdrop {
-  display: none;                 /* hidden by default — shown via media-query */
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.45);
-  z-index: 998;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes slideInRight {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(0); }
-}
-
-@keyframes slideOutRight {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
-}
-
 /* ---------- Main Content ---------- */
 .main-content {
   flex: 1;
@@ -65,30 +38,19 @@
 }
 
 /* =============================================
-   RESPONSIVE — Sidebar expectations
-   =============================================
-   The Sidebar component itself should use these
-   CSS custom properties / classes so the layout
-   stays in sync.  Below we define the rules the
-   Sidebar MUST follow:
-
-   Desktop  (>=1024px)  — fixed, pushes content
-   Tablet   (768‑1023)  — fixed, collapsed by default
-   Mobile   (<768px)    — off‑canvas overlay
+   RESPONSIVE 
    ============================================= */
-
-/* ---------- DESKTOP  >= 1024px  (default styles above) ---------- */
 
 /* ---------- TABLET  768px — 1023px ---------- */
 @media (max-width: 1023px) and (min-width: 768px) {
   .main-content {
-    margin-left: 80px;
-    width: calc(100% - 80px);
+    margin-left: 0 !important; /* Drawer is off-canvas, so content takes full width */
+    width: 100% !important;
   }
 
   .layout-container.sidebar-collapsed .main-content {
-    margin-left: 80px;
-    width: calc(100% - 80px);
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 
   .page-content {
@@ -98,11 +60,6 @@
 
 /* ---------- MOBILE  < 768px ---------- */
 @media (max-width: 767px) {
-  /* Show backdrop when sidebar is open */
-  .sidebar-backdrop {
-    display: block;
-  }
-
   /* Content takes full width — sidebar is overlay */
   .main-content {
     margin-left: 0 !important;
@@ -136,5 +93,4 @@
   .main-content {
     min-height: -webkit-fill-available;
   }
-
 }

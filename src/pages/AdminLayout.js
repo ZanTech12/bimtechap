@@ -65,7 +65,7 @@ const adminMenuItems = [
   { path: '/admin/classes', label: 'Classes', icon: '🏫' },
   { path: '/admin/subjects', label: 'Subjects', icon: '📚' },
   { path: '/admin/assign-teachers', label: 'Assign Teachers', icon: '🔗' },
-  { path: '/admin/e-notes', label: 'E-Notes', icon: '📒' }, // <-- ADDED MENU ITEM HERE
+  { path: '/admin/e-notes', label: 'E-Notes', icon: '📒' },
   
   // --- Divider: Grading System ---
   { divider: true, label: 'GRADING SYSTEM' },
@@ -93,7 +93,7 @@ const adminMenuItems = [
   { divider: true, label: 'SYSTEM' },
   
   { path: '/admin/settings', label: 'Settings', icon: '⚙️' },
-  {path:'/admin/sitesettings', label:'SiteSettings',icon:'🚀 '}
+  { path:'/admin/sitesettings', label:'SiteSettings', icon:'🚀 '}
 ];
 
 const AdminLayout = () => {
@@ -121,52 +121,27 @@ const AdminLayout = () => {
     };
   }, [sidebarOpen]);
 
-  // Desktop: toggle collapsed state
-  const handleDesktopToggle = () => {
-    if (!isMobile) {
-      setSidebarCollapsed(prev => !prev);
-    }
-  };
-
-  // Mobile: open sidebar overlay
-  const handleMobileOpen = () => {
-    if (isMobile) {
-      setSidebarOpen(true);
-    }
-  };
-
-  // Mobile: close sidebar overlay
-  const handleMobileClose = () => {
-    setSidebarOpen(false);
-  };
-
   return (
     <div className={`layout-container ${!isMobile && sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       
-      {/* Backdrop for mobile sidebar - only renders if mobile AND open */}
-      {isMobile && sidebarOpen && (
-        <div 
-          className="sidebar-backdrop" 
-          onClick={handleMobileClose}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Sidebar - passes dynamic props based on device type */}
+      {/* 
+        Sidebar now handles its own backdrop internally. 
+        We just pass the correct state and toggle functions.
+      */}
       <Sidebar
         items={adminMenuItems}
         collapsed={!isMobile && sidebarCollapsed}
         isOpen={isMobile && sidebarOpen}
-        onCloseMobile={handleMobileClose}
+        onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+        onToggleOpen={() => setSidebarOpen(prev => !prev)} // This handles both opening and closing
       />
 
       {/* Main content */}
       <div className="main-content">
         <Header
           title="Admin Panel"
-          onToggleSidebar={handleDesktopToggle}
-          onMobileMenuClick={handleMobileOpen}
-          showMobileMenu={isMobile}
+          onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
+          onMobileMenuClick={() => setSidebarOpen(prev => !prev)} // This handles both opening and closing
         />
         <div className="page-content">
           <Routes>
@@ -178,7 +153,7 @@ const AdminLayout = () => {
             <Route path="/classes" element={<ManageClasses />} />
             <Route path="/subjects" element={<ManageSubjects />} />
             <Route path="/assign-teachers" element={<AssignTeachers />} />
-            <Route path="/e-notes" element={<ENotesManager />} /> {/* <-- ADDED ROUTE HERE */}
+            <Route path="/e-notes" element={<ENotesManager />} />
             
             {/* Grading System Routes */}
             <Route path="/sessions" element={<SessionsManager />} />
