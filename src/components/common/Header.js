@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { clearAuthData, getAuthData } from '../../api';
 import './header.css';
 
-const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
+const Header = ({ title, onToggleSidebar, onToggleMobile }) => {
   const navigate = useNavigate();
   const { user } = getAuthData();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -24,7 +23,6 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
     };
   }, []);
 
-  // Close dropdown on route change
   useEffect(() => {
     setMenuOpen(false);
   }, [navigate]);
@@ -38,16 +36,14 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
   // Handle both Desktop Collapse and Mobile Drawer based on screen width
   const handleToggleSidebar = () => {
     setMenuOpen(false);
-    if (window.innerWidth < 1024) {
-      if (onMobileMenuClick) onMobileMenuClick();
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      onToggleMobile();
     } else {
-      if (onToggleSidebar) onToggleSidebar();
+      onToggleSidebar();
     }
   };
 
-  const toggleMenu = () => {
-    setMenuOpen((prev) => !prev);
-  };
+  const toggleMenu = () => setMenuOpen((prev) => !prev);
 
   const getInitials = () => {
     if (!user) return '?';
@@ -63,7 +59,6 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
 
   return (
     <header className="header">
-      {/* Left section */}
       <div className="header-left">
         <button
           className="header-toggle"
@@ -78,9 +73,7 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
         <h2 className="header-title">{title}</h2>
       </div>
 
-      {/* Right section */}
       <div className="header-right" ref={menuRef}>
-        {/* Desktop: show full user info + logout button */}
         <div className="header-user-desktop">
           <div className="header-user-avatar-sm">{getInitials()}</div>
           <div className="header-user-info">
@@ -92,7 +85,6 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
           Logout
         </button>
 
-        {/* Mobile: avatar that opens dropdown */}
         <button
           className="header-avatar-trigger"
           onClick={toggleMenu}
@@ -103,7 +95,6 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
           {getInitials()}
         </button>
 
-        {/* Dropdown menu */}
         <div className={`header-dropdown ${menuOpen ? 'header-dropdown--open' : ''}`}>
           <div className="header-dropdown-user">
             <div className="header-dropdown-avatar">{getInitials()}</div>

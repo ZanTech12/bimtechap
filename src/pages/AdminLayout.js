@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
 import AdminDashboard from '../components/admin/AdminDashboard';
@@ -63,24 +64,22 @@ const adminMenuItems = [
 
 const AdminLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Close drawer if screen resizes to desktop
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = isMobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileOpen]);
+
+  // Close mobile drawer if screen resizes to desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setIsDrawerOpen(false);
-      }
+      if (window.innerWidth >= 1024) setIsMobileOpen(false);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Lock body scroll when mobile drawer is open
-  useEffect(() => {
-    document.body.style.overflow = isDrawerOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [isDrawerOpen]);
 
   return (
     <div className={`layout-container ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
@@ -88,16 +87,16 @@ const AdminLayout = () => {
       <Sidebar
         items={adminMenuItems}
         collapsed={isCollapsed}
-        isOpen={isDrawerOpen}
+        isOpen={isMobileOpen}
         onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
-        onCloseDrawer={() => setIsDrawerOpen(false)}
+        onToggleMobile={() => setIsMobileOpen(!isMobileOpen)}
       />
 
       <div className="main-content">
         <Header
           title="Admin Panel"
           onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
-          onMobileMenuClick={() => setIsDrawerOpen(!isDrawerOpen)}
+          onToggleMobile={() => setIsMobileOpen(!isMobileOpen)}
         />
         
         <div className="page-content">

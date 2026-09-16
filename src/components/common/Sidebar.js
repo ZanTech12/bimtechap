@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import './sidebar.css';
@@ -16,7 +16,7 @@ const CloseIcon = () => (
   </svg>
 );
 
-const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onCloseDrawer }) => {
+const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onToggleMobile }) => {
   const location = useLocation();
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const site = useSchoolSettings();
@@ -26,10 +26,10 @@ const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onCloseDrawer }) 
     if (site.shortName) setShortName(site.shortName);
   }, [site.shortName]);
 
-  // Close mobile drawer automatically when route changes
+  // Automatically close mobile drawer when route changes
   useEffect(() => {
-    onCloseDrawer();
-  }, [location.pathname, onCloseDrawer]);
+    if (isOpen) onToggleMobile();
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const logoUrl = site.logoUrl || '';
 
@@ -38,7 +38,7 @@ const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onCloseDrawer }) 
       {/* Mobile Backdrop */}
       <div 
         className={`sidebar-backdrop ${isOpen ? 'visible' : ''}`} 
-        onClick={onCloseDrawer} 
+        onClick={onToggleMobile} 
         aria-hidden="true"
       />
 
@@ -73,7 +73,7 @@ const Sidebar = ({ items, collapsed, isOpen, onToggleCollapse, onCloseDrawer }) 
             </button>
 
             {/* Mobile Close Button */}
-            <button className="sidebar-toggle-btn mobile-toggle" onClick={onCloseDrawer} aria-label="Close sidebar">
+            <button className="sidebar-toggle-btn mobile-toggle" onClick={onToggleMobile} aria-label="Close sidebar">
               <CloseIcon />
             </button>
           </div>

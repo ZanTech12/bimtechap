@@ -1,13 +1,10 @@
 /* =========================================
-   Admin Layout Styles — Fully Responsive
+   Admin Layout CSS
    ========================================= */
-
 .layout-container {
   display: flex;
   min-height: 100vh;
-  min-height: 100dvh;
   background-color: #f1f5f9;
-  position: relative;
 }
 
 .main-content {
@@ -15,10 +12,9 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  min-height: 100dvh;
-  margin-left: 260px;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  width: calc(100% - 260px);
+  margin-left: 264px;
+  width: calc(100% - 264px);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .layout-container.sidebar-collapsed .main-content {
@@ -30,44 +26,14 @@
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
-  overflow-x: hidden;
 }
 
-/* TABLET  768px — 1023px */
-@media (max-width: 1023px) and (min-width: 768px) {
-  .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-  .layout-container.sidebar-collapsed .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-  .page-content { padding: 1.5rem; }
-}
-
-/* MOBILE  < 768px */
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .main-content {
     margin-left: 0 !important;
     width: 100% !important;
   }
   .page-content {
     padding: 1rem;
-    padding-bottom: 1.5rem;
-  }
-}
-
-@media (max-width: 379px) {
-  .page-content { padding: 0.75rem; }
-}
-
-@media (min-width: 1440px) {
-  .page-content { padding: 2.5rem 3rem; }
-}
-
-@supports (-webkit-touch-callout: none) {
-  .layout-container, .main-content {
-    min-height: -webkit-fill-available;
   }
 }
