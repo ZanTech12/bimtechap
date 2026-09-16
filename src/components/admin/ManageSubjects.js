@@ -316,6 +316,7 @@ const ManageSubjects = () => {
           .su-search-bar { padding: 10px 16px; }
           .su-search-wrap { max-width: 100%; }
           .su-table-section { display: none !important; }
+          .su-cards { display: flex !important; } /* 👈 FIX: SHOW CARDS ON MOBILE */
           .su-form-row { grid-template-columns: 1fr; }
           .su-modal { max-height: 95vh; border-radius: 16px 16px 0 0; }
         }
