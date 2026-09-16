@@ -101,14 +101,71 @@
 }
 
 /* ============================================================
+   HEADER & TOGGLE BUTTONS
+   ============================================================ */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 18px 14px;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn {
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  color: var(--sb-text);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(34, 197, 94, 0.2);
+  color: #fff;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.mobile-toggle { display: none; }
+.desktop-toggle { display: flex; }
+
+.mobile-menu-fab {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1001;
+  background: linear-gradient(135deg, var(--sb-accent), var(--sb-accent-2));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-menu-fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 24px rgba(34, 197, 94, 0.5);
+}
+
+/* ============================================================
    LOGO
    ============================================================ */
 .sidebar-logo {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 18px 14px;
-  flex-shrink: 0;
 }
 .logo-mark {
   position: relative;
@@ -402,6 +459,10 @@
    ============================================================ */
 .sidebar.collapsed { width: var(--sb-width-collapsed); }
 
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding-right: 0;
+}
 .sidebar.collapsed .sidebar-logo {
   justify-content: center;
   padding-left: 0;
@@ -430,11 +491,32 @@
 }
 .sidebar.collapsed .nav-label { display: none; }
 
+/* Floating Desktop Toggle when collapsed */
+.sidebar.collapsed .desktop-toggle {
+  position: absolute;
+  right: -12px;
+  top: 24px;
+  background: var(--sb-bg-2);
+  border: 1px solid var(--sb-border);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  z-index: 10;
+}
+.sidebar.collapsed .desktop-toggle:hover {
+  background: var(--sb-accent);
+  color: #fff;
+}
+
 /* ============================================================
    RESPONSIVE — TABLET (768px – 1023px)
    Off-canvas drawer, always full width when opened
    ============================================================ */
 @media (max-width: 1023px) {
+  .desktop-toggle { display: none; }
+  .mobile-toggle { display: flex; }
+  .mobile-menu-fab { display: flex; }
+
   .sidebar {
     width: var(--sb-width);
     transform: translateX(-100%);
@@ -445,13 +527,17 @@
     transform: translateX(0);
     box-shadow: 12px 0 48px rgba(0, 0, 0, 0.55);
   }
+  
   /* Ignore .collapsed on tablet/mobile — drawer is always expanded */
   .sidebar.collapsed { width: var(--sb-width); }
+  .sidebar.collapsed .sidebar-header { padding-right: 18px; justify-content: space-between; }
+  .sidebar.collapsed .sidebar-logo { justify-content: flex-start; padding-left: 0; padding-right: 0; }
   .sidebar.collapsed .logo-text,
   .sidebar.collapsed .nav-section-label,
   .sidebar.collapsed .sidebar-version { display: block; }
   .sidebar.collapsed .sidebar-nav-item { justify-content: flex-start; padding: 11px 14px; gap: 12px; }
   .sidebar.collapsed .nav-label { display: inline; }
+  .sidebar.collapsed .desktop-toggle { display: none; }
 
   .sidebar-backdrop {
     display: block;
@@ -478,7 +564,7 @@
     width: min(286px, 84vw);
     border-right: none;
   }
-  .sidebar-logo { padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px; }
+  .sidebar-header { padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px; }
   .sidebar-nav-item { padding: 12px 14px; font-size: 0.88rem; }
   .sidebar-footer { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   .ambient-orb { opacity: 0.25; } /* lighter effects on small screens */
