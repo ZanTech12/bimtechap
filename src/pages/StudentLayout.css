@@ -1,0 +1,40 @@
+/* =========================================
+   Layout CSS (Shared with AdminLayout)
+   ========================================= */
+.layout-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f1f5f9;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin-left: 264px; /* Desktop sidebar width */
+  width: calc(100% - 264px);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.layout-container.sidebar-collapsed .main-content {
+  margin-left: 80px; /* Collapsed sidebar width */
+  width: calc(100% - 80px);
+}
+
+.page-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* MOBILE/TABLET STYLES (< 1024px) */
+@media (max-width: 1023px) {
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .page-content {
+    padding: 1rem;
+  }
+}

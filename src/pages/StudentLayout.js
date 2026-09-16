@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useLayout } from '../context/LayoutContext';
-import { useDevice } from '../context/DeviceContext';
 
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
@@ -9,162 +7,93 @@ import StudentDashboard from '../components/student/StudentDashboard';
 import TestList from '../components/student/TestList';
 import TakeTest from '../components/student/TakeTest';
 import MyResults from '../components/student/MyResults';
+import './StudentLayout.css'
 
-// ============================================
 // ACADEMIC IMPORTS
-// ============================================
 import StudentReportCard from '../components/student/StudentReportCard';
 import StudentProfile from '../components/student/StudentProfile';
 
-// ============================================
-// E-NOTES IMPORT (NEW)
-// ============================================
+// E-NOTES IMPORT
 import StudentENotes from '../pages/StudentENotes';
 
 const studentMenuItems = [
-  // --- Main ---
   { path: '/student', label: 'Dashboard', icon: '📊', exact: true },
-  
-  // --- Divider: Examinations ---
   { divider: true, label: 'EXAMINATIONS' },
-  
   { path: '/student/tests', label: 'Available Tests', icon: '📝' },
   { path: '/student/results', label: 'Test Results', icon: '📈' },
   { path: '/student/schedule', label: 'Test Schedule', icon: '📅' },
-  
-  // --- Divider: Academics ---
   { divider: true, label: 'ACADEMICS' },
-  
   { path: '/student/report-card', label: 'My Grades', icon: '📋' },
-  { path: '/student/e-notes', label: 'E-Notes', icon: '📒' }, // <-- ADDED MENU ITEM HERE
-  
-  // --- Divider: Account ---
+  { path: '/student/e-notes', label: 'E-Notes', icon: '📒' },
   { divider: true, label: 'ACCOUNT' },
-  
   { path: '/student/profile', label: 'Profile', icon: '👤' },
 ];
 
 const StudentLayout = () => {
-  const { layoutHidden } = useLayout();
-  const { isMobile } = useDevice();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Auto-close mobile sidebar if screen resizes to desktop
+  // Close drawer if screen resizes to desktop
   useEffect(() => {
-    if (!isMobile) {
-      setSidebarOpen(false);
-    }
-  }, [isMobile]);
-
-  // Lock body scroll when mobile sidebar is open
-  useEffect(() => {
-    if (sidebarOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsDrawerOpen(false);
+      }
     };
-  }, [sidebarOpen]);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Desktop: toggle collapsed state
-  const handleDesktopToggle = () => {
-    if (!isMobile) {
-      setSidebarCollapsed(prev => !prev);
-    }
-  };
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = isDrawerOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isDrawerOpen]);
 
-  // Mobile: open sidebar overlay
-  const handleMobileOpen = () => {
-    if (isMobile) {
-      setSidebarOpen(true);
-    }
-  };
-
-  // Mobile: close sidebar overlay
-  const handleMobileClose = () => {
-    setSidebarOpen(false);
-  };
-
-  // When TakeTest sets layoutHidden = true, render ONLY the page content (Fullscreen mode)
-  if (layoutHidden) {
-    return (
-      <Routes>
-        {/* Main Routes */}
-        <Route path="/" element={<StudentDashboard />} />
-        
-        {/* Examination Routes */}
-        <Route path="/tests" element={<TestList />} />
-        <Route path="/tests/:testId" element={<TakeTest />} />
-        <Route path="/results" element={<MyResults />} />
-        <Route path="/schedule" element={<TestList showSchedule />} />
-        
-        {/* Academic Routes */}
-        <Route path="/report-card" element={<StudentReportCard />} />
-        <Route path="/e-notes" element={<StudentENotes />} /> {/* <-- ADDED ROUTE HERE (Fullscreen) */}
-        
-        {/* Account Routes */}
-        <Route path="/profile" element={<StudentProfile />} />
-        
-        {/* Catch all */}
-        <Route path="*" element={<Navigate to="/student" replace />} />
-      </Routes>
-    );
-  }
-
-  // Normal Layout (Header + Sidebar + Content)
-  return (
-    <div className={`layout-container ${!isMobile && sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+  // The Routes definition (reused for both normal and fullscreen modes if you ever need it)
+  const renderRoutes = () => (
+    <Routes>
+      {/* Main Routes */}
+      <Route path="/" element={<StudentDashboard />} />
       
-      {/* Backdrop for mobile sidebar */}
-      {isMobile && sidebarOpen && (
-        <div 
-          className="sidebar-backdrop" 
-          onClick={handleMobileClose}
-          aria-hidden="true"
-        />
-      )}
+      {/* Examination Routes */}
+      <Route path="/tests" element={<TestList />} />
+      <Route path="/tests/:testId" element={<TakeTest />} />
+      <Route path="/results" element={<MyResults />} />
+      <Route path="/schedule" element={<TestList showSchedule />} />
+      
+      {/* Academic Routes */}
+      <Route path="/report-card" element={<StudentReportCard />} />
+      <Route path="/e-notes" element={<StudentENotes />} />
+      
+      {/* Account Routes */}
+      <Route path="/profile" element={<StudentProfile />} />
+      
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/student" replace />} />
+    </Routes>
+  );
 
-      {/* Sidebar */}
+  return (
+    <div className={`layout-container ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+      
       <Sidebar
         items={studentMenuItems}
-        collapsed={!isMobile && sidebarCollapsed}
-        isOpen={isMobile && sidebarOpen}
-        onCloseMobile={handleMobileClose}
+        collapsed={isCollapsed}
+        isOpen={isDrawerOpen}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        onToggleOpen={() => setIsDrawerOpen(!isDrawerOpen)}
       />
 
-      {/* Main content */}
       <div className="main-content">
         <Header
           title="Student Panel"
-          onToggleSidebar={handleDesktopToggle}
-          onMobileMenuClick={handleMobileOpen}
-          showMobileMenu={isMobile}
+          onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
+          onMobileMenuClick={() => setIsDrawerOpen(!isDrawerOpen)}
         />
+        
         <div className="page-content">
-          <Routes>
-            {/* Main Routes */}
-            <Route path="/" element={<StudentDashboard />} />
-            
-            {/* Examination Routes */}
-            <Route path="/tests" element={<TestList />} />
-            <Route path="/tests/:testId" element={<TakeTest />} />
-            <Route path="/results" element={<MyResults />} />
-            <Route path="/schedule" element={<TestList showSchedule />} />
-            
-            {/* Academic Routes */}
-            <Route path="/report-card" element={<StudentReportCard />} />
-            <Route path="/e-notes" element={<StudentENotes />} /> {/* <-- ADDED ROUTE HERE (Normal Layout) */}
-            
-            {/* Account Routes */}
-            <Route path="/profile" element={<StudentProfile />} />
-            
-            {/* Catch all */}
-            <Route path="*" element={<Navigate to="/student" replace />} />
-          </Routes>
+          {renderRoutes()}
         </div>
       </div>
     </div>
