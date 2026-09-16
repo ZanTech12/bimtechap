@@ -136,7 +136,7 @@ const getSubdomain = () => {
   // Example: brainfield.okispecial.com.ng -> length is 4. parts[0] is 'brainfield'
   // Example: okispecial.com.ng -> length is 3. Returns null.
   if (parts.length > 3 && parts[0] !== 'www') {
-    return parts[0].toUpperCase(); 
+    return parts[0]; // 👈 Keep it exactly as it is in the URL (lowercase)
   }
   
   return null;
