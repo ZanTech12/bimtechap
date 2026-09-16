@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
@@ -7,7 +7,8 @@ import StudentDashboard from '../components/student/StudentDashboard';
 import TestList from '../components/student/TestList';
 import TakeTest from '../components/student/TakeTest';
 import MyResults from '../components/student/MyResults';
-import './StudentLayout.css'
+
+import './StudentLayout.css';
 
 // ACADEMIC IMPORTS
 import StudentReportCard from '../components/student/StudentReportCard';
@@ -32,6 +33,11 @@ const studentMenuItems = [
 const StudentLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const location = useLocation();
+
+  // Check if the student is actively taking a test (e.g., URL has an ID)
+  // If so, we hide the Sidebar and Header to give the test full screen.
+  const isTakingTest = location.pathname.includes('/student/tests/') && location.pathname.split('/').length > 3;
 
   // Close drawer if screen resizes to desktop
   useEffect(() => {
@@ -50,7 +56,6 @@ const StudentLayout = () => {
     return () => { document.body.style.overflow = ''; };
   }, [isDrawerOpen]);
 
-  // The Routes definition (reused for both normal and fullscreen modes if you ever need it)
   const renderRoutes = () => (
     <Routes>
       {/* Main Routes */}
@@ -74,6 +79,16 @@ const StudentLayout = () => {
     </Routes>
   );
 
+  // FULLSCREEN MODE (When taking a test)
+  if (isTakingTest) {
+    return (
+      <div className="fullscreen-test-container">
+        {renderRoutes()}
+      </div>
+    );
+  }
+
+  // NORMAL LAYOUT (Sidebar + Header + Content)
   return (
     <div className={`layout-container ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       

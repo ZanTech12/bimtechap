@@ -1,5 +1,5 @@
 /* =========================================
-   Layout CSS (Shared with AdminLayout)
+   Layout CSS (Ensure this matches AdminLayout)
    ========================================= */
 .layout-container {
   display: flex;
@@ -26,6 +26,14 @@
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+}
+
+/* Fullscreen test container takes up the whole screen */
+.fullscreen-test-container {
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  background-color: #f1f5f9;
 }
 
 /* MOBILE/TABLET STYLES (< 1024px) */
