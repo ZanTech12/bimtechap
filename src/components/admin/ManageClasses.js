@@ -136,7 +136,6 @@ const ManageClasses = () => {
       level: cls.level || '',
       section: cls.section || '',
       session: cls.session || '',
-      // FIX: Safely handle Prisma 'id' OR MongoDB '_id'
       teacherId: cls.teacherId?._id || cls.teacherId?.id || '',
       capacity: cls.capacity || '',
       subjects: cls.subjects?.map(s => s._id || s.id) || [],
@@ -155,7 +154,6 @@ const ManageClasses = () => {
     e.preventDefault();
     const submitData = { ...formData, capacity: parseInt(formData.capacity) };
     if (editingClass) {
-      // FIX: Safely handle Prisma 'id' OR MongoDB '_id'
       updateMutation.mutate({ id: editingClass._id || editingClass.id, data: submitData });
     } else {
       createMutation.mutate(submitData);
@@ -164,7 +162,6 @@ const ManageClasses = () => {
 
   const handleDelete = (cls) => {
     if (window.confirm(`Delete class "${cls.name} - ${cls.section}"?`)) {
-      // FIX: Safely handle Prisma 'id' OR MongoDB '_id'
       deleteMutation.mutate(cls._id || cls.id);
     }
   };
@@ -395,6 +392,7 @@ const ManageClasses = () => {
           .mc-search-bar { padding: 10px 16px; }
           .mc-search-wrap { max-width: 100%; }
           .mc-table-section { display: none !important; }
+          .mc-cards { display: flex !important; } /* 👈 FIX: SHOW CARDS ON MOBILE */
           .mc-card-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
           .mc-form-row { grid-template-columns: 1fr; }
           .mc-modal { max-height: 95vh; border-radius: 16px 16px 0 0; }
@@ -472,7 +470,7 @@ const ManageClasses = () => {
                 const teacherName = getTeacherName(cls);
                 const subjectNames = getSubjectNames(cls);
                 const levelBadge = getLevelBadge(cls.level);
-                const classId = cls._id || cls.id; // FIX: Safely get ID
+                const classId = cls._id || cls.id; 
                 return (
                   <tr key={classId}>
                     <td>
@@ -568,7 +566,7 @@ const ManageClasses = () => {
           const teacherName = getTeacherName(cls);
           const subjectNames = getSubjectNames(cls);
           const levelBadge = getLevelBadge(cls.level);
-          const classId = cls._id || cls.id; // FIX: Safely get ID
+          const classId = cls._id || cls.id; 
           return (
             <div className="mc-card" key={classId}>
               <div className="mc-card-top">
@@ -676,7 +674,6 @@ const ManageClasses = () => {
                     <select name="teacherId" className="mc-form-input mc-form-select" value={formData.teacherId} onChange={handleChange} required>
                       <option value="">Select Teacher</option>
                       {teachers?.data?.map((teacher) => (
-                        // FIX: Safely handle Prisma 'id' OR MongoDB '_id'
                         <option key={teacher._id || teacher.id} value={teacher._id || teacher.id}>
                           {teacher.firstName} {teacher.lastName}
                         </option>
@@ -691,7 +688,6 @@ const ManageClasses = () => {
                       <div className="mc-checkbox-empty">No subjects available</div>
                     ) : (
                       subjects?.data?.map((subject) => {
-                        // FIX: Safely handle Prisma 'id' OR MongoDB '_id'
                         const subjId = subject._id || subject.id;
                         return (
                           <label className="mc-checkbox-item" key={subjId}>
