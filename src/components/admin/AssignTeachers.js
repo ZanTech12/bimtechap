@@ -203,7 +203,6 @@ const AssignTeachers = () => {
     e.preventDefault();
     if (isDuplicate) { showNotif('error', 'This teacher is already assigned to this class and subject!'); return; }
     
-    // Parse IDs to integers before sending to backend
     const payload = {
       teacher_id: parseInt(formData.teacher_id),
       class_id: parseInt(formData.class_id),
@@ -296,7 +295,8 @@ const AssignTeachers = () => {
         @keyframes atToastIn { from { opacity: 0; transform: translateY(-12px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
         /* ===== FORM PANEL ===== */
-        .at-form-panel { background: var(--surface); border-bottom: 1px solid var(--border); animation: atFormIn 0.25s ease; overflow: hidden; }
+        /* FIX: Removed 'overflow: hidden' so dropdown can spill out */
+        .at-form-panel { background: var(--surface); border-bottom: 1px solid var(--border); animation: atFormIn 0.25s ease; }
         @keyframes atFormIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         .at-form-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); }
         .at-form-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px; }
@@ -323,7 +323,8 @@ const AssignTeachers = () => {
         .at-ss-clear:hover { background: #cbd5e1; }
         .at-ss-arrow { display: flex; transition: transform var(--transition); }
         .at-ss-arrow-up { transform: rotate(180deg); }
-        .at-ss-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 50; overflow: hidden; animation: atSsIn 0.15s ease; }
+        /* FIX: Increased z-index to 100 so it overlays the filter bar below it */
+        .at-ss-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 100; overflow: hidden; animation: atSsIn 0.15s ease; }
         @keyframes atSsIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .at-ss-search { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
         .at-ss-search svg { flex-shrink: 0; }
@@ -387,7 +388,7 @@ const AssignTeachers = () => {
         .at-teacher-name { font-weight: 600; font-size: 0.88rem; color: var(--text); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .at-teacher-email { font-size: 0.76rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        /* ===== ACTION MENU (matching ManageClasses pattern) ===== */
+        /* ===== ACTION MENU ===== */
         .at-action-wrap { position: relative; }
         .at-action-trigger { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
         .at-action-trigger:hover { background: #f8fafc; border-color: #cbd5e1; }
@@ -441,6 +442,7 @@ const AssignTeachers = () => {
           .at-form-row { grid-template-columns: 1fr; gap: 14px; }
           .at-form-header, .at-form-body { padding-left: 16px; padding-right: 16px; }
           .at-table-section { display: none !important; }
+          .at-cards { display: flex !important; } /* 👈 FIX: SHOW CARDS ON MOBILE */
           .at-toast { left: 16px; right: 16px; max-width: none; top: 12px; }
         }
 
