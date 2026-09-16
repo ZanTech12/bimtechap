@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000'; // Your backend URL
+const API_BASE_URL = 'https://bimtecbackend.onrender.com'; // Your backend URL
 
 const api = axios.create({
 
