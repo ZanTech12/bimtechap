@@ -2,16 +2,14 @@
    Admin Layout Styles — Fully Responsive
    ========================================= */
 
-/* ---------- Root ---------- */
 .layout-container {
   display: flex;
   min-height: 100vh;
-  min-height: 100dvh;            /* dynamic viewport height for mobile browsers */
+  min-height: 100dvh;
   background-color: #f1f5f9;
   position: relative;
 }
 
-/* ---------- Main Content ---------- */
 .main-content {
   flex: 1;
   display: flex;
@@ -23,13 +21,11 @@
   width: calc(100% - 260px);
 }
 
-/* Collapsed sidebar — main shifts */
 .layout-container.sidebar-collapsed .main-content {
   margin-left: 80px;
   width: calc(100% - 80px);
 }
 
-/* ---------- Page Content ---------- */
 .page-content {
   flex: 1;
   padding: 2rem;
@@ -37,60 +33,41 @@
   overflow-x: hidden;
 }
 
-/* =============================================
-   RESPONSIVE 
-   ============================================= */
-
-/* ---------- TABLET  768px — 1023px ---------- */
+/* TABLET  768px — 1023px */
 @media (max-width: 1023px) and (min-width: 768px) {
   .main-content {
-    margin-left: 0 !important; /* Drawer is off-canvas, so content takes full width */
+    margin-left: 0 !important;
     width: 100% !important;
   }
-
   .layout-container.sidebar-collapsed .main-content {
     margin-left: 0 !important;
     width: 100% !important;
   }
-
-  .page-content {
-    padding: 1.5rem;
-  }
+  .page-content { padding: 1.5rem; }
 }
 
-/* ---------- MOBILE  < 768px ---------- */
+/* MOBILE  < 768px */
 @media (max-width: 767px) {
-  /* Content takes full width — sidebar is overlay */
   .main-content {
     margin-left: 0 !important;
     width: 100% !important;
   }
-
   .page-content {
     padding: 1rem;
-    padding-bottom: 1.5rem;     /* extra bottom so content isn't hidden behind notch */
+    padding-bottom: 1.5rem;
   }
 }
 
-/* ---------- SMALL MOBILE  < 380px (very small devices) ---------- */
 @media (max-width: 379px) {
-  .page-content {
-    padding: 0.75rem;
-  }
+  .page-content { padding: 0.75rem; }
 }
 
-/* ---------- LARGE DESKTOP  >= 1440px (wider breathing room) ---------- */
 @media (min-width: 1440px) {
-  .page-content {
-    padding: 2.5rem 3rem;
-  }
+  .page-content { padding: 2.5rem 3rem; }
 }
 
-/* ---------- SAFARI / iOS FIXES ---------- */
 @supports (-webkit-touch-callout: none) {
-  /* Fix 100vh bug on iOS Safari */
-  .layout-container,
-  .main-content {
+  .layout-container, .main-content {
     min-height: -webkit-fill-available;
   }
 }

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useDevice } from '../context/DeviceContext';
 
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
@@ -18,14 +17,10 @@ import Settings from '../components/admin/Settings';
 import SiteSettings from '../components/admin/SiteSettings';
 import BulkQuestionConverter from '../components/admin/BulkQuestionConverter';
 
-// ============================================
-// E-NOTES IMPORT (NEW)
-// ============================================
+// E-NOTES IMPORT
 import ENotesManager from '../pages/ENotesManager';
 
-// ============================================
 // GRADING SYSTEM IMPORTS
-// ============================================
 import SessionsManager from '../components/admin/SessionsManager';
 import TermsManager from '../components/admin/TermsManager';
 import GradingSystem from '../components/admin/GradingSystem';
@@ -36,28 +31,18 @@ import ClassReportCards from '../components/admin/ClassReportCards';
 import StudentReportCard from '../components/admin/StudentReportCard';
 import ReportCardsPrintView from '../components/admin/ReportCardsPrintView';
 
-// ============================================
 // CA TEACHER PROGRESS IMPORT
-// ============================================
 import AdminCATeacherProgress from '../components/admin/AdminCATeacherProgress';
 
-// ============================================
 // STUDENTS CLASSES & SCORES IMPORT
-// ============================================
 import StudentsClassesScoresPage from '../components/admin/StudentsClassesScoresPage';
 
-// ============================================
 // BROADSHEET IMPORT
-// ============================================
 import Broadsheet from '../components/admin/Broadsheet';
 
 import './adminlayout.css';
 
-// ============================================
-// ADMIN MENU ITEMS
-// ============================================
 const adminMenuItems = [
-  // --- Core Management ---
   { path: '/admin', label: 'Dashboard', icon: '📊', exact: true },
   { path: '/admin/teachers', label: 'Teachers', icon: '👨‍🏫' },
   { path: '/admin/students', label: 'Students', icon: '👨‍🎓' },
@@ -66,10 +51,7 @@ const adminMenuItems = [
   { path: '/admin/subjects', label: 'Subjects', icon: '📚' },
   { path: '/admin/assign-teachers', label: 'Assign Teachers', icon: '🔗' },
   { path: '/admin/e-notes', label: 'E-Notes', icon: '📒' },
-  
-  // --- Divider: Grading System ---
   { divider: true, label: 'GRADING SYSTEM' },
-  
   { path: '/admin/sessions', label: 'Sessions', icon: '📅' },
   { path: '/admin/terms', label: 'Terms', icon: '📝' },
   { path: '/admin/grading-system', label: 'Grading System', icon: '📈' },
@@ -80,34 +62,19 @@ const adminMenuItems = [
   { path: '/admin/principal-comments', label: 'Comments', icon: '💬' },
   { path: '/admin/broadsheet', label: 'Broadsheet', icon: '📋' },
   { path: '/admin/report-cards', label: 'Report Cards', icon: '📄' },
-  
-  // --- Divider: Examinations ---
   { divider: true, label: 'EXAMINATIONS' },
-  
   { path: '/admin/question-sets', label: 'Question Sets', icon: '📑' },
   { path: '/admin/tests', label: 'Tests', icon: '📝' },
   { path: '/admin/results', label: 'Test Results', icon: '📊' },
   { path: '/admin/bulk-converter', label: 'AI Converter', icon: '🤖' }, 
-  
-  // --- Divider: System ---
   { divider: true, label: 'SYSTEM' },
-  
   { path: '/admin/settings', label: 'Settings', icon: '⚙️' },
   { path:'/admin/sitesettings', label:'SiteSettings', icon:'🚀 '}
 ];
 
 const AdminLayout = () => {
-  const { isMobile } = useDevice();
-  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // If the user resizes their window from mobile to desktop, close the overlay automatically
-  useEffect(() => {
-    if (!isMobile) {
-      setSidebarOpen(false);
-    }
-  }, [isMobile]);
 
   // Lock body scroll when mobile sidebar is open
   useEffect(() => {
@@ -122,30 +89,24 @@ const AdminLayout = () => {
   }, [sidebarOpen]);
 
   return (
-    <div className={`layout-container ${!isMobile && sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className={`layout-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       
-      {/* 
-        Sidebar now handles its own backdrop internally. 
-        We just pass the correct state and toggle functions.
-      */}
       <Sidebar
         items={adminMenuItems}
-        collapsed={!isMobile && sidebarCollapsed}
-        isOpen={isMobile && sidebarOpen}
+        collapsed={sidebarCollapsed}
+        isOpen={sidebarOpen}
         onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
-        onToggleOpen={() => setSidebarOpen(prev => !prev)} // This handles both opening and closing
+        onToggleOpen={() => setSidebarOpen(prev => !prev)}
       />
 
-      {/* Main content */}
       <div className="main-content">
         <Header
           title="Admin Panel"
           onToggleSidebar={() => setSidebarCollapsed(prev => !prev)}
-          onMobileMenuClick={() => setSidebarOpen(prev => !prev)} // This handles both opening and closing
+          onMobileMenuClick={() => setSidebarOpen(prev => !prev)}
         />
         <div className="page-content">
           <Routes>
-            {/* Core Routes */}
             <Route path="/" element={<AdminDashboard />} />
             <Route path="/teachers" element={<ManageTeachers />} />
             <Route path="/students" element={<ManageStudents />} />
@@ -154,8 +115,6 @@ const AdminLayout = () => {
             <Route path="/subjects" element={<ManageSubjects />} />
             <Route path="/assign-teachers" element={<AssignTeachers />} />
             <Route path="/e-notes" element={<ENotesManager />} />
-            
-            {/* Grading System Routes */}
             <Route path="/sessions" element={<SessionsManager />} />
             <Route path="/terms" element={<TermsManager />} />
             <Route path="/grading-system" element={<GradingSystem />} />
@@ -167,21 +126,13 @@ const AdminLayout = () => {
             <Route path="/report-cards" element={<ReportCards />} />
             <Route path="/report-cards/class/:classId" element={<ClassReportCards />} />
             <Route path="/report-cards/student/:studentId" element={<StudentReportCard />} />
-            
-            {/* Print Route - Hidden from sidebar menu */}
             <Route path="/report-cards/print" element={<ReportCardsPrintView />} />
-            
-            {/* Examination Routes */}
             <Route path="/question-sets" element={<QuestionSetManager />} />
             <Route path="/tests" element={<ManageTests />} />
             <Route path="/results" element={<StudentResultsView />} />
             <Route path="/bulk-converter" element={<BulkQuestionConverter />} /> 
-            
-            {/* System Routes */}
             <Route path="/settings" element={<Settings />} />
             <Route path="/sitesettings" element={<SiteSettings/>}/>
-            
-            {/* Catch all */}
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </div>
@@ -189,5 +140,3 @@ const AdminLayout = () => {
     </div>
   );
 };
-
-export default AdminLayout;

@@ -135,30 +135,6 @@
 .mobile-toggle { display: none; }
 .desktop-toggle { display: flex; }
 
-.mobile-menu-fab {
-  display: none;
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 1001;
-  background: linear-gradient(135deg, var(--sb-accent), var(--sb-accent-2));
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  width: 48px;
-  height: 48px;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.mobile-menu-fab:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 24px rgba(34, 197, 94, 0.5);
-}
-
 /* ============================================================
    LOGO
    ============================================================ */
@@ -515,7 +491,7 @@
 @media (max-width: 1023px) {
   .desktop-toggle { display: none; }
   .mobile-toggle { display: flex; }
-  .mobile-menu-fab { display: flex; }
+  .sidebar-header { padding-right: 18px; justify-content: space-between; }
 
   .sidebar {
     width: var(--sb-width);
