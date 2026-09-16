@@ -37,7 +37,7 @@
 
 /* Hamburger toggle button */
 .header-toggle {
-  display: flex;
+  display: flex;             /* Visible on all devices */
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -50,7 +50,7 @@
   border-radius: 8px;
   background: transparent;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, transform 0.1s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -60,6 +60,7 @@
 
 .header-toggle:active {
   background-color: #e2e8f0;
+  transform: scale(0.95);
 }
 
 .header-toggle-bar {
@@ -341,5 +342,4 @@
   .header {
     padding: 0 2.5rem;
   }
-
 }

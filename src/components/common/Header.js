@@ -37,11 +37,12 @@ const Header = ({ title, onToggleSidebar, onMobileMenuClick }) => {
 
   const handleToggleSidebar = () => {
     setMenuOpen(false);
-    // on mobile, open overlay sidebar; on desktop, collapse
-    if (onMobileMenuClick && window.innerWidth < 768) {
-      onMobileMenuClick();
-    } else if (onToggleSidebar) {
-      onToggleSidebar();
+    
+    // Use 1024px as the breakpoint because that's where the sidebar turns into a drawer
+    if (window.innerWidth < 1024) {
+      if (onMobileMenuClick) onMobileMenuClick();
+    } else {
+      if (onToggleSidebar) onToggleSidebar();
     }
   };
 
