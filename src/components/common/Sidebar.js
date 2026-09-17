@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useSchoolSettings } from '../../hooks/useSchoolSettings';
 import './sidebar.css';
 
-const Sidebar = ({ items, collapsed, isOpen }) => {
+const Sidebar = ({ items, collapsed, isOpen, onCloseMobile }) => {
+  const location = useLocation();
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const site = useSchoolSettings();
   const [shortName, setShortName] = useState('School');
@@ -11,6 +12,11 @@ const Sidebar = ({ items, collapsed, isOpen }) => {
   useEffect(() => {
     if (site.shortName) setShortName(site.shortName);
   }, [site.shortName]);
+
+  // Auto-close mobile drawer when route changes
+  useEffect(() => {
+    if (isOpen) onCloseMobile();
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clear hovered tooltip when sidebar collapses
   useEffect(() => {
@@ -59,34 +65,38 @@ const Sidebar = ({ items, collapsed, isOpen }) => {
         {/* Navigation */}
         <nav className="sidebar-nav" aria-label="Main navigation">
           {items.map((item, index) => (
-            <div
-              key={index}
-              className="nav-item-wrapper"
-              style={{ '--stagger': `${index * 45}ms` }}
-            >
-              <NavLink
-                to={item.path}
-                end
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? 'active' : ''}`
-                }
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
+            item.divider ? (
+              <div key={index} className="nav-divider">{item.label}</div>
+            ) : (
+              <div
+                key={index}
+                className="nav-item-wrapper"
+                style={{ '--stagger': `${index * 45}ms` }}
               >
-                <span className="nav-icon">{item.icon}</span>
-                <span className="nav-label">{item.label}</span>
-                {/* Animated glow layer on active item */}
-                <span className="nav-active-glow" aria-hidden="true" />
-              </NavLink>
+                <NavLink
+                  to={item.path}
+                  end={item.exact}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? 'active' : ''}`
+                  }
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                >
+                  <span className="nav-icon">{item.icon}</span>
+                  <span className="nav-label">{item.label}</span>
+                  {/* Animated glow layer on active item */}
+                  <span className="nav-active-glow" aria-hidden="true" />
+                </NavLink>
 
-              {/* Tooltip — only visible when collapsed & hovered */}
-              {collapsed && hoveredIndex === index && (
-                <div className="nav-tooltip" role="tooltip">
-                  {item.label}
-                  <span className="nav-tooltip-arrow" aria-hidden="true" />
-                </div>
-              )}
-            </div>
+                {/* Tooltip — only visible when collapsed & hovered */}
+                {collapsed && hoveredIndex === index && (
+                  <div className="nav-tooltip" role="tooltip">
+                    {item.label}
+                    <span className="nav-tooltip-arrow" aria-hidden="true" />
+                  </div>
+                )}
+              </div>
+            )
           ))}
         </nav>
 

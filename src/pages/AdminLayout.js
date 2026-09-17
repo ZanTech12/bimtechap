@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useDevice } from '../context/DeviceContext';
 
 import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
@@ -14,13 +15,13 @@ import QuestionSetManager from '../components/admin/QuestionSetManager';
 import StudentResultsView from '../components/admin/StudentResultsView';
 import RecycleBin from '../components/admin/RecycleBin';
 import Settings from '../components/admin/Settings';
-import SiteSettings from '../components/admin/SiteSettings';                    // ← ADDED
-import BulkQuestionConverter from '../components/admin/BulkQuestionConverter';  // ← ADDED
+import SiteSettings from '../components/admin/SiteSettings';
+import BulkQuestionConverter from '../components/admin/BulkQuestionConverter';
 
 // ============================================
 // E-NOTES IMPORT (NEW)
 // ============================================
-import ENotesManager from '../pages/ENotesManager';                            // ← ADDED
+import ENotesManager from '../pages/ENotesManager';
 
 // ============================================
 // GRADING SYSTEM IMPORTS
@@ -64,7 +65,7 @@ const adminMenuItems = [
   { path: '/admin/classes', label: 'Classes', icon: '🏫' },
   { path: '/admin/subjects', label: 'Subjects', icon: '📚' },
   { path: '/admin/assign-teachers', label: 'Assign Teachers', icon: '🔗' },
-  { path: '/admin/e-notes', label: 'E-Notes', icon: '📒' },                     // ← ADDED
+  { path: '/admin/e-notes', label: 'E-Notes', icon: '📒' },
 
   // --- Divider: Grading System ---
   { divider: true, label: 'GRADING SYSTEM' },
@@ -86,46 +87,87 @@ const adminMenuItems = [
   { path: '/admin/question-sets', label: 'Question Sets', icon: '📑' },
   { path: '/admin/tests', label: 'Tests', icon: '📝' },
   { path: '/admin/results', label: 'Test Results', icon: '📊' },
-  { path: '/admin/bulk-converter', label: 'AI Converter', icon: '🤖' },         // ← ADDED
+  { path: '/admin/bulk-converter', label: 'AI Converter', icon: '🤖' },
 
   // --- Divider: System ---
   { divider: true, label: 'SYSTEM' },
 
   { path: '/admin/settings', label: 'Settings', icon: '⚙️' },
-  { path: '/admin/sitesettings', label: 'Site Settings', icon: '🚀' },          // ← ADDED
+  { path: '/admin/sitesettings', label: 'Site Settings', icon: '🚀' },
 ];
 
 const AdminLayout = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { isMobile } = useDevice();
 
-  // Lock body scroll when mobile drawer is open
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Auto-close mobile sidebar if screen resizes to desktop
   useEffect(() => {
-    document.body.style.overflow = isMobileOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [isMobileOpen]);
+    if (!isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+
+  // Desktop: toggle collapsed state
+  const handleDesktopToggle = () => {
+    if (!isMobile) {
+      setSidebarCollapsed(prev => !prev);
+    }
+  };
+
+  // Mobile: open sidebar overlay
+  const handleMobileOpen = () => {
+    if (isMobile) {
+      setSidebarOpen(true);
+    }
+  };
+
+  // Mobile: close sidebar overlay
+  const handleMobileClose = () => {
+    setSidebarOpen(false);
+  };
 
   return (
-    <div className={`layout-container ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className={`layout-container ${!isMobile && sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+
+      {/* Backdrop for mobile sidebar - only renders if mobile AND open */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={handleMobileClose}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar - passes dynamic props based on device type */}
       <Sidebar
         items={adminMenuItems}
-        isCollapsed={isCollapsed}
-        isMobileOpen={isMobileOpen}
-        onCloseMobile={() => setIsMobileOpen(false)}
-        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        collapsed={!isMobile && sidebarCollapsed}
+        isOpen={isMobile && sidebarOpen}
+        onCloseMobile={handleMobileClose}
       />
 
+      {/* Main content */}
       <div className="main-content">
         <Header
-          onMenuClick={() => {
-            if (window.innerWidth < 1024) {
-              setIsMobileOpen(!isMobileOpen);
-            } else {
-              setIsCollapsed(!isCollapsed);
-            }
-          }}
+          title="Admin Panel"
+          onToggleSidebar={handleDesktopToggle}
+          onMobileMenuClick={handleMobileOpen}
+          showMobileMenu={isMobile}
         />
-
         <div className="page-content">
           <Routes>
             {/* Core Routes */}
@@ -136,7 +178,7 @@ const AdminLayout = () => {
             <Route path="/classes" element={<ManageClasses />} />
             <Route path="/subjects" element={<ManageSubjects />} />
             <Route path="/assign-teachers" element={<AssignTeachers />} />
-            <Route path="/e-notes" element={<ENotesManager />} />                {/* ← ADDED */}
+            <Route path="/e-notes" element={<ENotesManager />} />
 
             {/* Grading System Routes */}
             <Route path="/sessions" element={<SessionsManager />} />
@@ -158,11 +200,11 @@ const AdminLayout = () => {
             <Route path="/question-sets" element={<QuestionSetManager />} />
             <Route path="/tests" element={<ManageTests />} />
             <Route path="/results" element={<StudentResultsView />} />
-            <Route path="/bulk-converter" element={<BulkQuestionConverter />} /> {/* ← ADDED */}
+            <Route path="/bulk-converter" element={<BulkQuestionConverter />} />
 
             {/* System Routes */}
             <Route path="/settings" element={<Settings />} />
-            <Route path="/sitesettings" element={<SiteSettings />} />            {/* ← ADDED */}
+            <Route path="/sitesettings" element={<SiteSettings />} />
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/admin" replace />} />
