@@ -26,7 +26,7 @@ import ENotesManager from '../pages/ENotesManager';
 // ============================================
 // RESULT PIN GENERATOR IMPORT (NEW)
 // ============================================
-import PinGenerator from '../pages/PinGenerator';
+import PinGenerator from '../components/admin/PinGenerator';
 
 // ============================================
 // GRADING SYSTEM IMPORTS
