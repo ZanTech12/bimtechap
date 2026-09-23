@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api'; // Adjust path if your api file is elsewhere
+import api from '../../services/api'; // Adjust path if your api file is elsewhere
 
 export default function PinGenerator() {
     const [classes, setClasses] = useState([]);
