@@ -431,35 +431,33 @@ export default function ENotesManager() {
                                                 </thead>
                                                 <tbody>
                                                     {week.files.map(file => {
-                                                        {week.files.map(file => {
-    // ✅ FIXED: Check if URL is already absolute (from Cloudinary)
-    const fileUrl = file.fileUrl.startsWith('http') ? file.fileUrl : `${API_BASE_URL}${file.fileUrl}`;
-    // ✅ BYPASS CLOUDINARY: Wrap the URL in Google's PDF Viewer to force inline viewing
-    const viewUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
-    
-    return (
-        <tr key={file.id}>
-            <td>
-                <span className="badge-pdf" style={{ marginRight: '10px' }}>PDF</span>
-                <a 
-                    href={viewUrl} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    style={{ color: '#334155', textDecoration: 'none', fontWeight: 500 }}
-                >
-                    {file.fileName}
-                </a>
-            </td>
-            <td style={{ textAlign: 'right' }}>
-                <div className="btn-group" style={{ justifyContent: 'flex-end' }}>
-                    <a 
-                        href={viewUrl} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="btn btn-info btn-sm"
-                    >
-                        View
-                    </a>
+                                                        // ✅ FIXED: Check if URL is already absolute (from Cloudinary)
+                                                        const fileUrl = file.fileUrl.startsWith('http') ? file.fileUrl : `${API_BASE_URL}${file.fileUrl}`;
+                                                        // ✅ BYPASS CLOUDINARY: Wrap the URL in Google's PDF Viewer to force inline viewing
+                                                        const viewUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                                                        return (
+                                                            <tr key={file.id}>
+                                                                <td>
+                                                                    <span className="badge-pdf" style={{ marginRight: '10px' }}>PDF</span>
+                                                                    <a 
+                                                                        href={viewUrl} 
+                                                                        target="_blank" 
+                                                                        rel="noreferrer"
+                                                                        style={{ color: '#334155', textDecoration: 'none', fontWeight: 500 }}
+                                                                    >
+                                                                        {file.fileName}
+                                                                    </a>
+                                                                </td>
+                                                                <td style={{ textAlign: 'right' }}>
+                                                                    <div className="btn-group" style={{ justifyContent: 'flex-end' }}>
+                                                                        <a 
+                                                                            href={viewUrl} 
+                                                                            target="_blank" 
+                                                                            rel="noreferrer"
+                                                                            className="btn btn-info btn-sm"
+                                                                        >
+                                                                            View
+                                                                        </a>
                                                                         <button 
                                                                             onClick={() => handleDeleteFile(week.id, file.id)}
                                                                             className="btn btn-danger btn-sm"
