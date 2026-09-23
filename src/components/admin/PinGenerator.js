@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../services/api'; // Adjust path if your api file is elsewhere
+import api from '../../services/api';
 
 export default function PinGenerator() {
     const [classes, setClasses] = useState([]);
+    const [students, setStudents] = useState([]); // ✅ NEW: Students list
     const [terms, setTerms] = useState([]);
     const [sessions, setSessions] = useState([]);
     
     const [selectedClass, setSelectedClass] = useState('');
+    const [selectedStudent, setSelectedStudent] = useState(''); // ✅ NEW
     const [selectedTerm, setSelectedTerm] = useState('');
     const [selectedSession, setSelectedSession] = useState('');
     
@@ -34,18 +36,41 @@ export default function PinGenerator() {
         fetchData();
     }, []);
 
-    // 2. Auto-fetch existing PINs when Class, Term, and Session are all selected
+    // ✅ 2. Fetch Students when Class changes
+    const fetchStudents = async (classId) => {
+        if (!classId) {
+            setStudents([]);
+            return;
+        }
+        try {
+            const studentsRes = await api.get('/students', { params: { classId } });
+            let studentData = [];
+            if (Array.isArray(studentsRes.data)) studentData = studentsRes.data;
+            else if (studentsRes.data?.data && Array.isArray(studentsRes.data.data)) studentData = studentsRes.data.data;
+            setStudents(studentData);
+        } catch (err) {
+            console.error('Error fetching students:', err);
+            setStudents([]);
+        }
+    };
+
+    // ✅ 3. Auto-fetch existing PINs when selections change
     const fetchExistingPins = async () => {
         setLoading(true);
         setMessage('');
         try {
-            const pinsRes = await api.get('/admin/result-pins/list', {
-                params: { 
-                    termId: selectedTerm, 
-                    sessionId: selectedSession, 
-                    classId: selectedClass 
-                }
-            });
+            const params = { 
+                termId: selectedTerm, 
+                sessionId: selectedSession 
+            };
+            // If student is selected, filter by student. Otherwise, filter by class.
+            if (selectedStudent) {
+                params.studentId = selectedStudent;
+            } else if (selectedClass) {
+                params.classId = selectedClass;
+            }
+
+            const pinsRes = await api.get('/admin/result-pins/list', { params });
             setPins(pinsRes.data?.data || []);
         } catch (err) {
             console.error('Error fetching existing PINs:', err);
@@ -57,30 +82,40 @@ export default function PinGenerator() {
 
     // Watch for dropdown changes
     useEffect(() => {
-        if (selectedSession && selectedTerm && selectedClass) {
-            fetchExistingPins();
+        if (selectedSession && selectedTerm) {
+            if (selectedStudent || selectedClass) {
+                fetchExistingPins();
+            } else {
+                setPins([]);
+            }
         } else {
-            setPins([]); // Clear table if not all 3 are selected
+            setPins([]);
         }
-    }, [selectedSession, selectedTerm, selectedClass]);
+    }, [selectedSession, selectedTerm, selectedClass, selectedStudent]);
 
-    // 3. Handle manual generation (only if they want to generate new ones)
+    // ✅ 4. Handle manual generation
     const handleGenerate = async () => {
-        if (!selectedClass || !selectedTerm || !selectedSession) {
-            setMessage('Please select Class, Term, and Session');
+        if ((!selectedClass && !selectedStudent) || !selectedTerm || !selectedSession) {
+            setMessage('Please select Term, Session, and either a Class or a Student.');
             return;
         }
 
         setGenerating(true);
         setMessage('');
         try {
-            const res = await api.post('/admin/result-pins/generate', {
-                classId: selectedClass,
+            const payload = {
                 termId: selectedTerm,
                 sessionId: selectedSession
-            });
+            };
+            // If student is selected, send studentId. Otherwise, send classId.
+            if (selectedStudent) {
+                payload.studentId = selectedStudent;
+            } else {
+                payload.classId = selectedClass;
+            }
+
+            const res = await api.post('/admin/result-pins/generate', payload);
             setMessage(res.data.message);
-            // Refresh the table to show the newly generated PINs
             await fetchExistingPins();
         } catch (err) {
             setMessage(err.response?.data?.message || 'Failed to generate PINs');
@@ -116,17 +151,39 @@ export default function PinGenerator() {
 
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <label style={{ fontSize: '14px', marginBottom: '5px' }}>Class</label>
-                    <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ccc', minWidth: '150px' }}>
-                        <option value="">Select Class</option>
+                    <select 
+                        value={selectedClass} 
+                        onChange={(e) => {
+                            setSelectedClass(e.target.value);
+                            setSelectedStudent(''); // Reset student when class changes
+                            fetchStudents(e.target.value); // Fetch students for this class
+                        }} 
+                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ccc', minWidth: '150px' }}
+                    >
+                        <option value="">All Classes / None</option>
                         {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                </div>
+
+                {/* ✅ NEW: Student Dropdown */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <label style={{ fontSize: '14px', marginBottom: '5px' }}>Specific Student (Optional)</label>
+                    <select 
+                        value={selectedStudent} 
+                        onChange={(e) => setSelectedStudent(e.target.value)} 
+                        disabled={!selectedClass || students.length === 0}
+                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ccc', minWidth: '200px' }}
+                    >
+                        <option value="">All Students in Class</option>
+                        {students.map(s => <option key={s.id} value={s.id}>{s.lastName} {s.firstName} ({s.admissionNumber})</option>)}
                     </select>
                 </div>
 
                 <button 
                     onClick={handleGenerate} 
-                    disabled={generating || !selectedClass || !selectedTerm || !selectedSession}
+                    disabled={generating || (!selectedClass && !selectedStudent) || !selectedTerm || !selectedSession}
                     style={{ 
-                        background: (generating || !selectedClass || !selectedTerm || !selectedSession) ? '#a5b4fc' : '#4f46e5', 
+                        background: (generating || (!selectedClass && !selectedStudent) || !selectedTerm || !selectedSession) ? '#a5b4fc' : '#4f46e5', 
                         color: 'white', 
                         padding: '10px 20px', 
                         borderRadius: '8px', 
@@ -135,7 +192,7 @@ export default function PinGenerator() {
                         height: 'fit-content'
                     }}
                 >
-                    {generating ? 'Generating...' : 'Generate New PINs'}
+                    {generating ? 'Generating...' : 'Generate PINs'}
                 </button>
             </div>
 
@@ -176,10 +233,10 @@ export default function PinGenerator() {
                         </table>
                     </div>
                 ) : (
-                    (selectedSession && selectedTerm && selectedClass) && (
+                    (selectedSession && selectedTerm && (selectedClass || selectedStudent)) && (
                         <div style={{ background: '#f9fafb', border: '2px dashed #e5e7eb', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
                             <h3 style={{ fontSize: '1.1rem', color: '#374151', marginBottom: '5px' }}>No PINs Generated Yet</h3>
-                            <p style={{ color: '#888', fontSize: '0.85rem' }}>Click "Generate New PINs" to create result access codes for this class.</p>
+                            <p style={{ color: '#888', fontSize: '0.85rem' }}>Click "Generate PINs" to create result access codes.</p>
                         </div>
                     )
                 )
