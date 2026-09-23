@@ -19,9 +19,14 @@ import SiteSettings from '../components/admin/SiteSettings';
 import BulkQuestionConverter from '../components/admin/BulkQuestionConverter';
 
 // ============================================
-// E-NOTES IMPORT (NEW)
+// E-NOTES IMPORT
 // ============================================
 import ENotesManager from '../pages/ENotesManager';
+
+// ============================================
+// RESULT PIN GENERATOR IMPORT (NEW)
+// ============================================
+import PinGenerator from '../pages/PinGenerator';
 
 // ============================================
 // GRADING SYSTEM IMPORTS
@@ -79,6 +84,7 @@ const adminMenuItems = [
   { path: '/admin/ca-progress', label: 'CA Progress', icon: '📈' },
   { path: '/admin/principal-comments', label: 'Comments', icon: '💬' },
   { path: '/admin/broadsheet', label: 'Broadsheet', icon: '📋' },
+  { path: '/admin/result-pins', label: 'Result PINs', icon: '🔑' }, // ✅ ADDED MENU ITEM
   { path: '/admin/report-cards', label: 'Report Cards', icon: '📄' },
 
   // --- Divider: Examinations ---
@@ -189,6 +195,7 @@ const AdminLayout = () => {
             <Route path="/ca-progress" element={<AdminCATeacherProgress />} />
             <Route path="/principal-comments" element={<PrincipalComments />} />
             <Route path="/broadsheet/:classId?" element={<Broadsheet />} />
+            <Route path="/result-pins" element={<PinGenerator />} /> {/* ✅ ADDED ROUTE */}
             <Route path="/report-cards" element={<ReportCards />} />
             <Route path="/report-cards/class/:classId" element={<ClassReportCards />} />
             <Route path="/report-cards/student/:studentId" element={<StudentReportCard />} />
