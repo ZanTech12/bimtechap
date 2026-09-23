@@ -103,7 +103,6 @@ export default function ENotesManager() {
         try {
             const subRes = await eNotesAPI.getMySubjects(classId);
             let subjectData = [];
-            // ✅ BULLETPROOF EXTRACTION
             if (Array.isArray(subRes)) subjectData = subRes;
             else if (subRes?.data && Array.isArray(subRes.data)) subjectData = subRes.data;
             else if (subRes?.data?.data && Array.isArray(subRes.data.data)) subjectData = subRes.data.data;
@@ -205,7 +204,9 @@ export default function ENotesManager() {
             }
         } catch (err) {
             console.error('Error uploading files:', err);
-            setError('Failed to upload files.');
+            // ✅ IMPROVED ERROR HANDLING: Show the exact backend error message
+            const backendError = err.response?.data?.message || 'Failed to upload files. Check console for details.';
+            setError(backendError);
         } finally {
             setLoading(prev => ({ ...prev, uploading: false }));
         }
@@ -429,39 +430,43 @@ export default function ENotesManager() {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {week.files.map(file => (
-                                                        <tr key={file.id}>
-                                                            <td>
-                                                                <span className="badge-pdf" style={{ marginRight: '10px' }}>PDF</span>
-                                                                <a 
-                                                                    href={`${API_BASE_URL}${file.fileUrl}`} 
-                                                                    target="_blank" 
-                                                                    rel="noreferrer"
-                                                                    style={{ color: '#334155', textDecoration: 'none', fontWeight: 500 }}
-                                                                >
-                                                                    {file.fileName}
-                                                                </a>
-                                                            </td>
-                                                            <td style={{ textAlign: 'right' }}>
-                                                                <div className="btn-group" style={{ justifyContent: 'flex-end' }}>
+                                                    {week.files.map(file => {
+                                                        // ✅ FIXED: Check if URL is already absolute (from Cloudinary)
+                                                        const fileUrl = file.fileUrl.startsWith('http') ? file.fileUrl : `${API_BASE_URL}${file.fileUrl}`;
+                                                        return (
+                                                            <tr key={file.id}>
+                                                                <td>
+                                                                    <span className="badge-pdf" style={{ marginRight: '10px' }}>PDF</span>
                                                                     <a 
-                                                                        href={`${API_BASE_URL}${file.fileUrl}`} 
+                                                                        href={fileUrl} 
                                                                         target="_blank" 
                                                                         rel="noreferrer"
-                                                                        className="btn btn-info btn-sm"
+                                                                        style={{ color: '#334155', textDecoration: 'none', fontWeight: 500 }}
                                                                     >
-                                                                        View
+                                                                        {file.fileName}
                                                                     </a>
-                                                                    <button 
-                                                                        onClick={() => handleDeleteFile(week.id, file.id)}
-                                                                        className="btn btn-danger btn-sm"
-                                                                    >
-                                                                        Delete
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                                </td>
+                                                                <td style={{ textAlign: 'right' }}>
+                                                                    <div className="btn-group" style={{ justifyContent: 'flex-end' }}>
+                                                                        <a 
+                                                                            href={fileUrl} 
+                                                                            target="_blank" 
+                                                                            rel="noreferrer"
+                                                                            className="btn btn-info btn-sm"
+                                                                        >
+                                                                            View
+                                                                        </a>
+                                                                        <button 
+                                                                            onClick={() => handleDeleteFile(week.id, file.id)}
+                                                                            className="btn btn-danger btn-sm"
+                                                                        >
+                                                                            Delete
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
