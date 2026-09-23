@@ -1315,11 +1315,19 @@ export const eNotesAPI = {
         const response = await api.post('/e-notes/weeks', payload);
         return response.data;
     },
+    
+    // ✅ FIXED: Force Axios to delete the default JSON Content-Type so it accepts FormData
     uploadFiles: async (weekId, formData) => {
-        // Removed manual Content-Type header. Let Axios handle the FormData boundary automatically.
-        const response = await api.post(`/e-notes/weeks/${weekId}/upload`, formData);
+        const response = await api.post(`/e-notes/weeks/${weekId}/upload`, formData, {
+            transformRequest: [(data, headers) => {
+                // Delete the default JSON content type so the browser sets the multipart boundary
+                delete headers['Content-Type'];
+                return data;
+            }]
+        });
         return response.data;
     },
+
     deleteFile: async (fileId) => {
         const response = await api.delete(`/e-notes/files/${fileId}`);
         return response.data;
