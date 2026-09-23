@@ -33,7 +33,7 @@ export default function PinGenerator() {
         fetchData();
     }, []);
 
-    const handleGenerate = async () => {
+        const handleGenerate = async () => {
         if (!selectedClass || !selectedTerm || !selectedSession) {
             setMessage('Please select Class, Term, and Session');
             return;
@@ -42,12 +42,14 @@ export default function PinGenerator() {
         setLoading(true);
         setMessage('');
         try {
-            const res = await api.post('/admin/result-pins', {
+            // ✅ FIXED: Change '/admin/result-pins' to '/admin/result-pins/generate'
+            const res = await api.post('/admin/result-pins/generate', {
                 classId: selectedClass,
                 termId: selectedTerm,
                 sessionId: selectedSession
             });
             setMessage(res.data.message);
+            
             // Fetch the newly generated pins to display
             const pinsRes = await api.get('/admin/result-pins/list', {
                 params: { termId: selectedTerm, sessionId: selectedSession, classId: selectedClass }
@@ -59,7 +61,6 @@ export default function PinGenerator() {
             setLoading(false);
         }
     };
-
     return (
         <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '20px' }}>Result PIN Generator</h2>
