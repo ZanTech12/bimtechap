@@ -81,6 +81,15 @@ export default function StudentENotes() {
         }
     };
 
+    // ✅ PROTECTION: Block right-click context menu globally while viewer is open
+    useEffect(() => {
+        const handleContextMenu = (e) => {
+            if (activeFile) e.preventDefault();
+        };
+        document.addEventListener('contextmenu', handleContextMenu);
+        return () => document.removeEventListener('contextmenu', handleContextMenu);
+    }, [activeFile]);
+
     if (loading.initial) return (
         <div style={{ textAlign: 'center', padding: '40px' }}>
             <div className="spinner-dark"></div>
@@ -94,17 +103,28 @@ export default function StudentENotes() {
         </div>
     );
 
-    // ✅ FULL SCREEN PDF READER
+    // ✅ FULL SCREEN PDF READER (Protected)
     if (activeFile) {
+        const fileUrl = activeFile.fileUrl.startsWith('http') ? activeFile.fileUrl : `${API_BASE_URL}${activeFile.fileUrl}`;
+        const viewUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+
         return createPortal(
-            <div style={{ 
-                position: 'fixed', 
-                top: 0, left: 0, right: 0, bottom: 0, 
-                zIndex: 9999, 
-                backgroundColor: '#f8fafc', 
-                display: 'flex', 
-                flexDirection: 'column' 
-            }}>
+            <div 
+                style={{ 
+                    position: 'fixed', 
+                    top: 0, left: 0, right: 0, bottom: 0, 
+                    zIndex: 9999, 
+                    backgroundColor: '#f8fafc', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    // ✅ PROTECTION: Disable text selection and dragging
+                    userSelect: 'none', 
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                }}
+                // ✅ PROTECTION: Prevent dragging images/links
+                onDragStart={(e) => e.preventDefault()}
+            >
                 <div style={{ 
                     backgroundColor: 'white', 
                     padding: '12px 24px', 
@@ -141,7 +161,7 @@ export default function StudentENotes() {
                         position: 'relative' 
                     }}>
                         <iframe 
-                            src={`${API_BASE_URL}${activeFile.fileUrl}`} 
+                            src={viewUrl} 
                             title={activeFile.fileName}
                             style={{ 
                                 position: 'absolute', 
@@ -149,6 +169,8 @@ export default function StudentENotes() {
                                 width: '100%', height: '100%', 
                                 border: 'none' 
                             }}
+                            // ✅ PROTECTION: Block right-click directly on iframe
+                            onContextMenu={(e) => e.preventDefault()}
                         />
                     </div>
                 </div>
