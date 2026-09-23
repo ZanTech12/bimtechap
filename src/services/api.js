@@ -15,6 +15,8 @@ api.interceptors.request.use(
         if (typeof window !== 'undefined') {
             const token = localStorage.getItem('token');
             if (token) {
+                // Send BOTH headers to ensure backend compatibility
+                config.headers['x-auth-token'] = token;
                 config.headers.Authorization = `Bearer ${token}`;
             }
         }
@@ -251,12 +253,8 @@ export const studentsAPI = {
     uploadProfileImage: async (studentId, file) => {
         const formData = new FormData();
         formData.append('profileImage', file);
-        const response = await api.post(`/admin/students/${studentId}/profile-image`, formData, {
-            transformRequest: [(data, headers) => {
-                delete headers['Content-Type'];
-                return data;
-            }]
-        });
+        // Removed transformRequest hack, let Axios handle FormData automatically
+        const response = await api.post(`/admin/students/${studentId}/profile-image`, formData);
         return response.data;
     },
     removeProfileImage: async (studentId) => {
@@ -455,9 +453,8 @@ export const studentAPI = {
     uploadProfileImage: async (file) => {
         const formData = new FormData();
         formData.append('profileImage', file);
-        const response = await api.post('/student/profile-image', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        // Removed manual Content-Type, let Axios handle FormData automatically
+        const response = await api.post('/student/profile-image', formData);
         return response.data;
     },
     removeProfileImage: async () => {
@@ -1048,9 +1045,8 @@ export const siteInfoAPI = {
         return response.data;
     },
     upsertSiteInfo: async (formData) => {
-        const response = await api.put('/site-information', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        // Removed manual Content-Type header
+        const response = await api.put('/site-information', formData);
         return response.data;
     },
     deleteSiteInfo: async () => {
@@ -1301,7 +1297,6 @@ export const eNotesAPI = {
         const response = await api.get(`/e-notes/my-info?t=${Date.now()}`);
         return response.data;
     },
-    // ✅ THIS WAS MISSING
     getMySubjects: async (classId) => {
         const response = await api.get(`/e-notes/my-subjects?t=${Date.now()}`, { params: { classId } });
         return response.data;
@@ -1321,9 +1316,8 @@ export const eNotesAPI = {
         return response.data;
     },
     uploadFiles: async (weekId, formData) => {
-        const response = await api.post(`/e-notes/weeks/${weekId}/upload`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        // Removed manual Content-Type header. Let Axios handle the FormData boundary automatically.
+        const response = await api.post(`/e-notes/weeks/${weekId}/upload`, formData);
         return response.data;
     },
     deleteFile: async (fileId) => {
@@ -1335,6 +1329,7 @@ export const eNotesAPI = {
         return response.data;
     }
 };
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
