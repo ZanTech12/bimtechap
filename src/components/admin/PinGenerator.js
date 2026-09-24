@@ -17,7 +17,6 @@ export default function PinGenerator() {
     const [generatingStudentId, setGeneratingStudentId] = useState(null);
     const [message, setMessage] = useState('');
 
-    // 1. Fetch initial dropdown data on mount
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -36,12 +35,8 @@ export default function PinGenerator() {
         fetchData();
     }, []);
 
-    // 2. Fetch Students when Class changes
     const fetchStudents = async (classId) => {
-        if (!classId) {
-            setStudents([]);
-            return;
-        }
+        if (!classId) { setStudents([]); return; }
         try {
             const studentsRes = await api.get('/students', { params: { classId } });
             let studentData = [];
@@ -56,15 +51,9 @@ export default function PinGenerator() {
         }
     };
 
-    // 3. Fetch existing PINs
     const fetchExistingPins = async () => {
-        if (!selectedTerm || !selectedSession || !selectedClass) {
-            setPins([]);
-            return;
-        }
-
-        setLoadingTable(true);
-        setMessage('');
+        if (!selectedTerm || !selectedSession || !selectedClass) { setPins([]); return; }
+        setLoadingTable(true); setMessage('');
         try {
             const params = { termId: selectedTerm, sessionId: selectedSession, classId: selectedClass };
             const pinsRes = await api.get('/admin/result-pins/list', { params });
@@ -78,22 +67,15 @@ export default function PinGenerator() {
     };
 
     useEffect(() => {
-        if (selectedSession && selectedTerm && selectedClass) {
-            fetchExistingPins();
-        } else {
-            setPins([]);
-        }
+        if (selectedSession && selectedTerm && selectedClass) fetchExistingPins();
+        else setPins([]);
     }, [selectedSession, selectedTerm, selectedClass]);
 
-    // 4. Handle manual generation for the ENTIRE CLASS
     const handleGenerateAll = async () => {
         if (!selectedClass || !selectedTerm || !selectedSession) return;
-
-        setGeneratingAll(true);
-        setMessage('');
+        setGeneratingAll(true); setMessage('');
         try {
-            const payload = { termId: selectedTerm, sessionId: selectedSession, classId: selectedClass };
-            const res = await api.post('/admin/result-pins/generate', payload);
+            const res = await api.post('/admin/result-pins/generate', { termId: selectedTerm, sessionId: selectedSession, classId: selectedClass });
             setMessage(res.data.message);
             await fetchExistingPins(); 
         } catch (err) {
@@ -103,15 +85,11 @@ export default function PinGenerator() {
         }
     };
 
-    // 5. Handle generation for a SINGLE STUDENT
     const handleGenerateSingle = async (studentId) => {
         if (!studentId || !selectedTerm || !selectedSession) return;
-
-        setGeneratingStudentId(studentId);
-        setMessage('');
+        setGeneratingStudentId(studentId); setMessage('');
         try {
-            const payload = { termId: selectedTerm, sessionId: selectedSession, studentId: studentId };
-            const res = await api.post('/admin/result-pins/generate', payload);
+            const res = await api.post('/admin/result-pins/generate', { termId: selectedTerm, sessionId: selectedSession, studentId: studentId });
             setMessage(res.data.message);
             await fetchExistingPins(); 
         } catch (err) {
@@ -128,190 +106,189 @@ export default function PinGenerator() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
-            <div className="max-w-6xl mx-auto">
+        <div className="pg-container">
+            <style>{`
+                .pg-container { min-height: 100vh; background: #f8fafc; padding: 32px 16px; font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #0f172a; }
+                .pg-content { max-width: 900px; margin: 0 auto; }
+                .pg-header { margin-bottom: 32px; }
+                .pg-title { font-size: 24px; font-weight: 800; margin: 0; }
+                .pg-subtitle { font-size: 14px; color: #64748b; margin-top: 6px; }
                 
-                {/* Header */}
-                <div className="mb-8">
-                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Result PIN Manager</h2>
-                    <p className="mt-1.5 text-sm text-slate-500">Generate and manage result access codes for classes or individual students.</p>
+                .pg-card { background: #fff; padding: 24px; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 24px; }
+                .pg-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+                
+                .pg-label { display: block; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+                .pg-input { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; color: #334155; outline: none; transition: all 0.2s; box-sizing: border-box; }
+                .pg-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+                
+                .pg-btn-primary { background: #4f46e5; color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%; height: 42px; font-size: 14px; }
+                .pg-btn-primary:hover:not(:disabled) { background: #4338ca; }
+                .pg-btn-primary:disabled { background: #c7d2fe; cursor: not-allowed; }
+                
+                .pg-message { margin-top: 16px; background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+                
+                .pg-empty { background: #fff; border: 2px dashed #e2e8f0; border-radius: 16px; padding: 40px; text-align: center; }
+                .pg-empty h3 { margin: 0 0 4px 0; font-size: 16px; color: #334155; }
+                .pg-empty p { margin: 0; font-size: 14px; color: #94a3b8; }
+                
+                .pg-table-wrap { background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; overflow: hidden; }
+                .pg-table { width: 100%; border-collapse: collapse; }
+                .pg-table th { background: #f8fafc; padding: 14px 20px; text-align: left; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e2e8f0; }
+                .pg-table td { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; }
+                .pg-table tr:last-child td { border-bottom: none; }
+                .pg-table tr:hover { background: #f8fafc; }
+                
+                .pg-pin-badge { font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 4px 10px; border-radius: 6px; letter-spacing: 1px; font-size: 13px; font-family: monospace; }
+                .pg-status { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: capitalize; display: inline-block; }
+                .pg-status-none { background: #f1f5f9; color: #64748b; }
+                .pg-status-expired { background: #fee2e2; color: #b91c1c; }
+                .pg-status-active { background: #dcfce7; color: #15803d; }
+                
+                .pg-btn-action { font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer; border: none; transition: all 0.2s; }
+                .pg-btn-generate { background: #eef2ff; color: #4f46e5; }
+                .pg-btn-generate:hover { background: #e0e7ff; }
+                .pg-btn-new { background: #f1f5f9; color: #334155; }
+                .pg-btn-new:hover { background: #e2e8f0; }
+                .pg-btn-loading { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+
+                .pg-mobile-card { background: #fff; padding: 16px; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 16px; }
+                .pg-mobile-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+                .pg-mobile-name { font-size: 15px; font-weight: 700; margin: 0; }
+                .pg-mobile-adm { font-size: 12px; color: #64748b; margin: 4px 0 0 0; }
+                .pg-mobile-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 16px; }
+
+                @media (min-width: 640px) {
+                    .pg-grid { grid-template-columns: 1fr 1fr; }
+                }
+                @media (min-width: 1024px) {
+                    .pg-grid { grid-template-columns: 1fr 1fr 1fr 1fr; align-items: end; }
+                    .pg-container { padding: 40px; }
+                }
+                
+                .pg-desktop-view { display: none; }
+                .pg-mobile-view { display: block; }
+                @media (min-width: 768px) {
+                    .pg-desktop-view { display: block; }
+                    .pg-mobile-view { display: none; }
+                }
+            `}</style>
+
+            <div className="pg-content">
+                <div className="pg-header">
+                    <h2 className="pg-title">Result PIN Manager</h2>
+                    <p className="pg-subtitle">Generate and manage result access codes for classes or individual students.</p>
                 </div>
 
-                {/* Filters Card */}
-                <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm ring-1 ring-slate-200 mb-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+                <div className="pg-card">
+                    <div className="pg-grid">
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Session</label>
-                            <select 
-                                value={selectedSession} 
-                                onChange={(e) => setSelectedSession(e.target.value)}
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-700 text-sm transition-shadow"
-                            >
+                            <label className="pg-label">Session</label>
+                            <select className="pg-input" value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)}>
                                 <option value="">Select Session</option>
                                 {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Term</label>
-                            <select 
-                                value={selectedTerm} 
-                                onChange={(e) => setSelectedTerm(e.target.value)}
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-700 text-sm transition-shadow"
-                            >
+                            <label className="pg-label">Term</label>
+                            <select className="pg-input" value={selectedTerm} onChange={(e) => setSelectedTerm(e.target.value)}>
                                 <option value="">Select Term</option>
                                 {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Class</label>
-                            <select 
-                                value={selectedClass} 
-                                onChange={(e) => {
-                                    setSelectedClass(e.target.value);
-                                    fetchStudents(e.target.value);
-                                }}
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-700 text-sm transition-shadow"
-                            >
+                            <label className="pg-label">Class</label>
+                            <select className="pg-input" value={selectedClass} onChange={(e) => { setSelectedClass(e.target.value); fetchStudents(e.target.value); }}>
                                 <option value="">Select Class</option>
                                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
 
-                        <div className="flex items-end">
-                            <button 
-                                onClick={handleGenerateAll} 
-                                disabled={generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0}
-                                className="w-full bg-indigo-600 text-white py-2.5 px-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm shadow-sm"
-                            >
-                                {generatingAll ? 'Generating...' : 'Generate For Whole Class'}
-                            </button>
-                        </div>
+                        <button className="pg-btn-primary" onClick={handleGenerateAll} disabled={generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0}>
+                            {generatingAll ? 'Generating...' : 'Generate For Class'}
+                        </button>
                     </div>
-                    
-                    {message && (
-                        <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-3 rounded-xl text-sm font-medium">
-                            {message}
-                        </div>
-                    )}
+
+                    {message && <div className="pg-message">{message}</div>}
                 </div>
 
-                {/* Data Display Area */}
                 {loadingTable ? (
-                    <div className="flex justify-center items-center py-20 text-indigo-600 font-medium">
-                        Loading students...
-                    </div>
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#4f46e5', fontWeight: '500' }}>Loading students...</div>
                 ) : (
                     selectedClass ? (
                         students.length > 0 ? (
                             <>
-                                {/* Desktop View - Table */}
-                                <div className="hidden md:block bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
-                                    <table className="min-w-full divide-y divide-slate-200">
-                                        <thead className="bg-slate-50">
-                                            <tr>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student Name</th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Admission No.</th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Current PIN</th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-slate-100">
-                                            {students.map(student => {
-                                                const latestPin = getStudentPin(student.id);
-                                                const isGeneratingThis = generatingStudentId === student.id;
-
-                                                return (
-                                                    <tr key={student.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-medium text-slate-900">{student.lastName} {student.firstName}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm text-slate-500">{student.admissionNumber}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            {latestPin ? (
-                                                                <span className="text-sm font-bold text-indigo-600 tracking-wider px-2.5 py-1 bg-indigo-50 rounded-md">{latestPin.pin}</span>
-                                                            ) : (
-                                                                <span className="text-sm text-slate-400">—</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            {!latestPin ? (
-                                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-600">No PIN</span>
-                                                            ) : latestPin.isUsed ? (
-                                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-rose-100 text-rose-700">Expired</span>
-                                                            ) : (
-                                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-700">Active</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                            <button 
-                                                                onClick={() => handleGenerateSingle(student.id)}
-                                                                disabled={isGeneratingThis || !selectedTerm || !selectedSession}
-                                                                className={`text-xs font-semibold py-2 px-3 rounded-lg transition-colors ${
-                                                                    isGeneratingThis 
-                                                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                                                                        : latestPin 
-                                                                            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
-                                                                            : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                                                                }`}
-                                                            >
-                                                                {isGeneratingThis ? 'Generating...' : (latestPin ? 'Generate New' : 'Generate PIN')}
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                                {/* Desktop View */}
+                                <div className="pg-desktop-view">
+                                    <div className="pg-table-wrap">
+                                        <table className="pg-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Student Name</th>
+                                                    <th>Admission No.</th>
+                                                    <th>Current PIN</th>
+                                                    <th>Status</th>
+                                                    <th style={{ textAlign: 'right' }}>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {students.map(student => {
+                                                    const latestPin = getStudentPin(student.id);
+                                                    const isGeneratingThis = generatingStudentId === student.id;
+                                                    return (
+                                                        <tr key={student.id}>
+                                                            <td style={{ fontWeight: 600, color: '#0f172a' }}>{student.lastName} {student.firstName}</td>
+                                                            <td style={{ color: '#64748b' }}>{student.admissionNumber}</td>
+                                                            <td>{latestPin ? <span className="pg-pin-badge">{latestPin.pin}</span> : <span style={{ color: '#cbd5e1' }}>—</span>}</td>
+                                                            <td>
+                                                                {!latestPin ? <span className="pg-status pg-status-none">No PIN</span> :
+                                                                 latestPin.isUsed ? <span className="pg-status pg-status-expired">Expired</span> :
+                                                                 <span className="pg-status pg-status-active">Active</span>}
+                                                            </td>
+                                                            <td style={{ textAlign: 'right' }}>
+                                                                <button 
+                                                                    className={`pg-btn-action ${isGeneratingThis ? 'pg-btn-loading' : latestPin ? 'pg-btn-new' : 'pg-btn-generate'}`}
+                                                                    onClick={() => handleGenerateSingle(student.id)} 
+                                                                    disabled={isGeneratingThis || !selectedTerm || !selectedSession}
+                                                                >
+                                                                    {isGeneratingThis ? 'Generating...' : (latestPin ? 'Generate New' : 'Generate PIN')}
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
 
-                                {/* Mobile View - Cards */}
-                                <div className="md:hidden space-y-4">
+                                {/* Mobile View */}
+                                <div className="pg-mobile-view">
                                     {students.map(student => {
                                         const latestPin = getStudentPin(student.id);
                                         const isGeneratingThis = generatingStudentId === student.id;
-
                                         return (
-                                            <div key={student.id} className="bg-white p-5 rounded-2xl shadow-sm ring-1 ring-slate-200">
-                                                <div className="flex justify-between items-start mb-4">
+                                            <div key={student.id} className="pg-mobile-card">
+                                                <div className="pg-mobile-top">
                                                     <div>
-                                                        <h3 className="text-sm font-bold text-slate-900">{student.lastName} {student.firstName}</h3>
-                                                        <p className="text-xs text-slate-500 mt-0.5">{student.admissionNumber}</p>
+                                                        <h3 className="pg-mobile-name">{student.lastName} {student.firstName}</h3>
+                                                        <p className="pg-mobile-adm">{student.admissionNumber}</p>
                                                     </div>
-                                                    <div className="text-right">
-                                                        {!latestPin ? (
-                                                            <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-600">No PIN</span>
-                                                        ) : latestPin.isUsed ? (
-                                                            <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-rose-100 text-rose-700">Expired</span>
-                                                        ) : (
-                                                            <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-700">Active</span>
-                                                        )}
-                                                    </div>
+                                                    {!latestPin ? <span className="pg-status pg-status-none">No PIN</span> :
+                                                     latestPin.isUsed ? <span className="pg-status pg-status-expired">Expired</span> :
+                                                     <span className="pg-status pg-status-active">Active</span>}
                                                 </div>
                                                 
-                                                <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-3">
+                                                <div className="pg-mobile-bottom">
                                                     <div>
-                                                        <span className="block text-xs text-slate-400 mb-1 font-medium">Current PIN</span>
-                                                        {latestPin ? (
-                                                            <span className="text-base font-bold text-indigo-600 tracking-wider">{latestPin.pin}</span>
-                                                        ) : (
-                                                            <span className="text-sm text-slate-400">—</span>
-                                                        )}
+                                                        <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>CURRENT PIN</span>
+                                                        {latestPin ? <span className="pg-pin-badge">{latestPin.pin}</span> : <span style={{ color: '#cbd5e1' }}>—</span>}
                                                     </div>
                                                     <button 
-                                                        onClick={() => handleGenerateSingle(student.id)}
+                                                        className={`pg-btn-action ${isGeneratingThis ? 'pg-btn-loading' : latestPin ? 'pg-btn-new' : 'pg-btn-generate'}`}
+                                                        onClick={() => handleGenerateSingle(student.id)} 
                                                         disabled={isGeneratingThis || !selectedTerm || !selectedSession}
-                                                        className={`text-xs font-semibold py-2 px-4 rounded-lg transition-colors ${
-                                                            isGeneratingThis 
-                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                                                                : latestPin 
-                                                                    ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
-                                                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                                        }`}
                                                     >
                                                         {isGeneratingThis ? 'Generating...' : (latestPin ? 'New PIN' : 'Generate')}
                                                     </button>
@@ -322,15 +299,15 @@ export default function PinGenerator() {
                                 </div>
                             </>
                         ) : (
-                            <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center">
-                                <h3 className="text-lg font-medium text-slate-900 mb-1">No Students Found</h3>
-                                <p className="text-sm text-slate-500">There are no students enrolled in this class.</p>
+                            <div className="pg-empty">
+                                <h3>No Students Found</h3>
+                                <p>There are no students enrolled in this class.</p>
                             </div>
                         )
                     ) : (
-                        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center">
-                            <h3 className="text-sm font-medium text-slate-900">No class selected</h3>
-                            <p className="mt-1 text-sm text-slate-500">Select a class above to view students and generate PINs.</p>
+                        <div className="pg-empty">
+                            <h3>No class selected</h3>
+                            <p>Select a class above to view students and generate PINs.</p>
                         </div>
                     )
                 )}
