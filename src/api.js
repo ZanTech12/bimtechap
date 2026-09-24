@@ -313,19 +313,19 @@ export const studentsAPI = {
         return response.data;
     },
 
-    // ==========================================
+        // ==========================================
     // PROFILE IMAGE MANAGEMENT (ADMIN)
     // ==========================================
 
-    uploadProfileImage: async (studentId, file) => {
+    uploadProfileImage: async (studentId, file, config = {}) => {
         const formData = new FormData();
         formData.append('profileImage', file);
 
-        const response = await api.post(`/admin/students/${studentId}/profile-image`, formData, {
-            // This forces Axios to ignore the global 'application/json' header
-            // and let it automatically generate the correct multipart boundary
+        // ✅ URL changed to match your studentRoutes.js
+        const response = await api.post(`/students/${studentId}/profile-image`, formData, {
+            ...config, // This allows the progress bar to work
             transformRequest: [(data, headers) => {
-                delete headers['Content-Type'];
+                delete headers['Content-Type']; // Let browser set multipart boundary
                 return data;
             }]
         });
@@ -334,11 +334,11 @@ export const studentsAPI = {
     },
 
     removeProfileImage: async (studentId) => {
-        const response = await api.delete(`/admin/students/${studentId}/profile-image`);
+        // ✅ URL changed to match your studentRoutes.js
+        const response = await api.delete(`/students/${studentId}/profile-image`);
         return response.data;
     },
 };
-
 // ============================================
 // SUBJECTS API
 // ============================================
