@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { siteInfoAPI } from '../../services/api';
+import { siteInfoAPI } from '../../services/api'; // Adjust path if needed (e.g., '../../api')
 
 export default function SiteSettings() {
     const [formData, setFormData] = useState({
@@ -17,12 +17,10 @@ export default function SiteSettings() {
         schoolLogo: { url: '' }, 
         principalSignature: { url: '' }, 
         schoolStamp: { url: '' },
-        // 👈 NEW FIELDS FOR ADMISSION NUMBER CONTROL
         admissionPrefix: 'SCH', 
         admissionCounter: 0 
     });
     
-    // State to hold the actual File objects
     const [files, setFiles] = useState({
         schoolLogo: null, 
         principalSignature: null, 
@@ -31,6 +29,7 @@ export default function SiteSettings() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [deletingImage, setDeletingImage] = useState(''); // State for individual image deletion loading
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -47,8 +46,8 @@ export default function SiteSettings() {
                     schoolLogo: res.data.schoolLogo || { url: '' },
                     principalSignature: res.data.principalSignature || { url: '' },
                     schoolStamp: res.data.schoolStamp || { url: '' },
-                    admissionPrefix: res.data.admissionPrefix || 'SCH', // 👈 Ensure defaults
-                    admissionCounter: res.data.admissionCounter || 0   // 👈 Ensure defaults
+                    admissionPrefix: res.data.admissionPrefix || 'SCH',
+                    admissionCounter: res.data.admissionCounter || 0
                 }));
             }
         } catch (err) {
@@ -60,16 +59,41 @@ export default function SiteSettings() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value.toUpperCase() })); // Force uppercase for prefix
+        // Only force uppercase for admissionPrefix
+        if (name === 'admissionPrefix') {
+            setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleFileChange = (e, field) => {
         const file = e.target.files[0];
         if (file) {
-            // Create a temporary local URL to preview the image
             const previewUrl = URL.createObjectURL(file);
             setFormData(prev => ({ ...prev, [field]: { url: previewUrl } }));
             setFiles(prev => ({ ...prev, [field]: file }));
+        }
+    };
+
+    // ✅ NEW: Handle deleting a single image from Cloudinary
+    const handleRemoveImage = async (field) => {
+        setDeletingImage(field);
+        setError('');
+        setSuccess('');
+        try {
+            await siteInfoAPI.deleteSingleImage(field);
+            
+            // Clear from local state
+            setFormData(prev => ({ ...prev, [field]: { url: '' } }));
+            setFiles(prev => ({ ...prev, [field]: null }));
+            
+            setSuccess(`${field} removed successfully!`);
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            setError(err.response?.data?.message || `Failed to remove ${field}.`);
+        } finally {
+            setDeletingImage('');
         }
     };
 
@@ -80,18 +104,13 @@ export default function SiteSettings() {
         setSuccess('');
 
         try {
-            // Create a FormData object to send files and text together
             const submitData = new FormData();
-            
-            // Append all text fields
-            // 👈 We destructure out admissionCounter so it doesn't get saved/overwritten here!
             const { _id, __v, createdAt, updatedAt, schoolLogo, principalSignature, schoolStamp, admissionCounter, ...textFields } = formData;
             
             for (const key in textFields) {
                 submitData.append(key, textFields[key]);
             }
             
-            // Append files (only if the user selected a new one)
             if (files.schoolLogo) submitData.append('schoolLogo', files.schoolLogo);
             if (files.principalSignature) submitData.append('principalSignature', files.principalSignature);
             if (files.schoolStamp) submitData.append('schoolStamp', files.schoolStamp);
@@ -99,7 +118,7 @@ export default function SiteSettings() {
             const res = await siteInfoAPI.upsertSiteInfo(submitData);
             if (res.success) {
                 setSuccess('Site information saved successfully!');
-                setFiles({ schoolLogo: null, principalSignature: null, schoolStamp: null }); // Clear files
+                setFiles({ schoolLogo: null, principalSignature: null, schoolStamp: null });
                 setTimeout(() => setSuccess(''), 3000);
             }
         } catch (err) {
@@ -123,6 +142,8 @@ export default function SiteSettings() {
     const saveBtnBase = { background: colors.primary, color: '#ffffff', border: 'none', padding: '10px 22px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s ease, transform 0.05s ease', whiteSpace: 'nowrap' };
     const saveBtnStyle = { ...saveBtnBase, alignSelf: 'center' };
     const saveBtnMobileStyle = { ...saveBtnBase, width: '100%', marginTop: '8px', padding: '14px', fontSize: '15px' };
+    const removeBtnStyle = { marginTop: '8px', background: colors.dangerBg, color: colors.dangerText, border: `1px solid ${colors.dangerBorder}`, padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', width: 'fit-content' };
+    
     const alertBase = { padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px', border: '1px solid' };
     const alertErrorStyle = { ...alertBase, background: colors.dangerBg, color: colors.dangerText, borderColor: colors.dangerBorder };
     const alertSuccessStyle = { ...alertBase, background: colors.successBg, color: colors.successText, borderColor: colors.successBorder };
@@ -147,7 +168,6 @@ export default function SiteSettings() {
         return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.bg }}><div style={{ width: '48px', height: '48px', border: '4px solid #e5e7eb', borderTopColor: colors.primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div><style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style></div>;
     }
 
-    // Live preview calculation for admission number
     const nextAdmissionNumber = `${formData.admissionPrefix || 'SCH'}/${new Date().getFullYear()}/${String((formData.admissionCounter || 0) + 1).padStart(3, '0')}`;
 
     return (
@@ -185,7 +205,6 @@ export default function SiteSettings() {
                         </div>
                     </div>
                     
-                    {/* 👇 NEW ADMISSION NUMBER PREFIX INPUT 👇 */}
                     <div style={inputGroupStyle}>
                         <label style={labelStyle}>Admission Number Prefix</label>
                         <input 
@@ -252,20 +271,61 @@ export default function SiteSettings() {
                     </div>
                     
                     <div style={imageGridStyle}>
+                        {/* School Logo */}
                         <div style={inputGroupStyle}>
                             <label style={labelStyle}>Upload School Logo</label>
                             <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'schoolLogo')} style={inputStyle} />
-                            {formData.schoolLogo.url && <img src={formData.schoolLogo.url} alt="Logo Preview" style={previewImgStyle} />}
+                            {formData.schoolLogo.url && (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    <img src={formData.schoolLogo.url} alt="Logo Preview" style={previewImgStyle} />
+                                    <button 
+                                        type="button" 
+                                        style={removeBtnStyle} 
+                                        disabled={deletingImage === 'schoolLogo'}
+                                        onClick={() => handleRemoveImage('schoolLogo')}
+                                    >
+                                        {deletingImage === 'schoolLogo' ? 'Removing...' : '❌ Remove Logo'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Principal Signature */}
                         <div style={inputGroupStyle}>
                             <label style={labelStyle}>Upload Principal Signature</label>
                             <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'principalSignature')} style={inputStyle} />
-                            {formData.principalSignature.url && <img src={formData.principalSignature.url} alt="Signature Preview" style={previewImgStyle} />}
+                            {formData.principalSignature.url && (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    <img src={formData.principalSignature.url} alt="Signature Preview" style={previewImgStyle} />
+                                    <button 
+                                        type="button" 
+                                        style={removeBtnStyle} 
+                                        disabled={deletingImage === 'principalSignature'}
+                                        onClick={() => handleRemoveImage('principalSignature')}
+                                    >
+                                        {deletingImage === 'principalSignature' ? 'Removing...' : '❌ Remove Signature'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
+
+                        {/* School Stamp */}
                         <div style={inputGroupStyle}>
                             <label style={labelStyle}>Upload School Stamp</label>
                             <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'schoolStamp')} style={inputStyle} />
-                            {formData.schoolStamp.url && <img src={formData.schoolStamp.url} alt="Stamp Preview" style={previewImgStyle} />}
+                            {formData.schoolStamp.url && (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    <img src={formData.schoolStamp.url} alt="Stamp Preview" style={previewImgStyle} />
+                                    <button 
+                                        type="button" 
+                                        style={removeBtnStyle} 
+                                        disabled={deletingImage === 'schoolStamp'}
+                                        onClick={() => handleRemoveImage('schoolStamp')}
+                                    >
+                                        {deletingImage === 'schoolStamp' ? 'Removing...' : '❌ Remove Stamp'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

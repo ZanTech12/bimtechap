@@ -1068,6 +1068,11 @@ export const siteInfoAPI = {
         });
         return response.data;
     },
+    // ✅ NEW: Delete a single image (Logo, Signature, or Stamp) from Cloudinary
+    deleteSingleImage: async (field) => {
+        const response = await api.delete(`/site-information/image/${field}`);
+        return response.data;
+    },
     deleteSiteInfo: async () => {
         const response = await api.delete('/site-information');
         return response.data;
