@@ -421,14 +421,14 @@ const MyStudents = () => {
     setSavingAttendance(prev => ({ ...prev, [studentId]: true }));
 
     try {
-      // ✅ FIXED: Mapped to Prisma expected camelCase Integers
+      // ✅ FIXED: Sending snake_case exactly as your backend controller expects
       await attendanceAPI.upsert({
-        studentId: parseInt(studentId),
-        classId: parseInt(classId),
+        student_id: parseInt(studentId),
+        class_id: parseInt(classId),
         term: currentTerm,
         session: currentSession,
-        timesPresent: numVal,
-        teacherId: parseInt(user._id || user.id),
+        times_present: numVal,
+        teacher_id: parseInt(user._id || user.id),
       });
       
       // Refetch attendance to update percentages immediately
@@ -499,11 +499,11 @@ const MyStudents = () => {
     try {
       const studentId = getStudentId(commentModal.student);
       
-      // ✅ FIXED: Mapped to Prisma expected camelCase Integers
+      // ✅ FIXED: Sending snake_case exactly as your backend controller expects
       const commentData = {
-        studentId: parseInt(studentId || commentModal.student.id || commentModal.student._id),
-        classId: parseInt(commentModal.classId),
-        teacherId: parseInt(user._id || user.id),
+        student_id: parseInt(studentId || commentModal.student.id || commentModal.student._id),
+        class_id: parseInt(commentModal.classId),
+        teacher_id: parseInt(user._id || user.id),
         comment: commentText.trim(),
         term: commentModal.term,
         session: commentModal.session,
