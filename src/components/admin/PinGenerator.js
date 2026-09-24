@@ -141,7 +141,7 @@ export default function PinGenerator() {
                 .pg-pin-badge { font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 4px 10px; border-radius: 6px; letter-spacing: 1px; font-size: 13px; font-family: monospace; }
                 .pg-status { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: capitalize; display: inline-block; }
                 .pg-status-none { background: #f1f5f9; color: #64748b; }
-                .pg-status-expired { background: #fee2e2; color: #b91c1c; }
+                .pg-status-used { background: #fee2e2; color: #b91c1c; }
                 .pg-status-active { background: #dcfce7; color: #15803d; }
                 
                 .pg-btn-action { font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer; border: none; transition: all 0.2s; }
@@ -243,7 +243,7 @@ export default function PinGenerator() {
                                                             <td>{latestPin ? <span className="pg-pin-badge">{latestPin.pin}</span> : <span style={{ color: '#cbd5e1' }}>—</span>}</td>
                                                             <td>
                                                                 {!latestPin ? <span className="pg-status pg-status-none">No PIN</span> :
-                                                                 latestPin.isUsed ? <span className="pg-status pg-status-expired">Expired</span> :
+                                                                 latestPin.isUsed ? <span className="pg-status pg-status-used">Used</span> :
                                                                  <span className="pg-status pg-status-active">Active</span>}
                                                             </td>
                                                             <td style={{ textAlign: 'right' }}>
@@ -276,7 +276,7 @@ export default function PinGenerator() {
                                                         <p className="pg-mobile-adm">{student.admissionNumber}</p>
                                                     </div>
                                                     {!latestPin ? <span className="pg-status pg-status-none">No PIN</span> :
-                                                     latestPin.isUsed ? <span className="pg-status pg-status-expired">Expired</span> :
+                                                     latestPin.isUsed ? <span className="pg-status pg-status-used">Used</span> :
                                                      <span className="pg-status pg-status-active">Active</span>}
                                                 </div>
                                                 
