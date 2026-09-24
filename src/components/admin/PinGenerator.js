@@ -128,209 +128,213 @@ export default function PinGenerator() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans">
-            <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Result PIN Manager</h2>
-                <p className="mt-1 text-sm text-gray-500">Generate and manage result access codes for classes or individual students.</p>
-            </div>
-
-            {/* Filters Card */}
-            <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Session</label>
-                        <select 
-                            value={selectedSession} 
-                            onChange={(e) => setSelectedSession(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-gray-700"
-                        >
-                            <option value="">Select Session</option>
-                            {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Term</label>
-                        <select 
-                            value={selectedTerm} 
-                            onChange={(e) => setSelectedTerm(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-gray-700"
-                        >
-                            <option value="">Select Term</option>
-                            {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
-                        <select 
-                            value={selectedClass} 
-                            onChange={(e) => {
-                                setSelectedClass(e.target.value);
-                                fetchStudents(e.target.value);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-gray-700"
-                        >
-                            <option value="">Select Class</option>
-                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div className="flex items-end">
-                        <button 
-                            onClick={handleGenerateAll} 
-                            disabled={generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0}
-                            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center"
-                        >
-                            {generatingAll ? 'Generating...' : 'Generate For Whole Class'}
-                        </button>
-                    </div>
-                </div>
+        <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
+            <div className="max-w-6xl mx-auto">
                 
-                {message && (
-                    <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-3 rounded-lg text-sm font-medium">
-                        {message}
-                    </div>
-                )}
-            </div>
-
-            {/* Data Display Area */}
-            {loadingTable ? (
-                <div className="flex justify-center items-center py-20 text-indigo-600 font-medium">
-                    Loading students...
+                {/* Header */}
+                <div className="mb-8">
+                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Result PIN Manager</h2>
+                    <p className="mt-1.5 text-sm text-slate-500">Generate and manage result access codes for classes or individual students.</p>
                 </div>
-            ) : (
-                selectedClass ? (
-                    students.length > 0 ? (
-                        <>
-                            {/* Desktop View - Table */}
-                            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admission No.</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current PIN</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {students.map(student => {
-                                            const latestPin = getStudentPin(student.id);
-                                            const isGeneratingThis = generatingStudentId === student.id;
 
-                                            return (
-                                                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm font-medium text-gray-900">{student.lastName} {student.firstName}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-500">{student.admissionNumber}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {latestPin ? (
-                                                            <span className="text-sm font-bold text-indigo-600 tracking-wider px-2 py-1 bg-indigo-50 rounded">{latestPin.pin}</span>
-                                                        ) : (
-                                                            <span className="text-sm text-gray-400">—</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                {/* Filters Card */}
+                <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm ring-1 ring-slate-200 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Session</label>
+                            <select 
+                                value={selectedSession} 
+                                onChange={(e) => setSelectedSession(e.target.value)}
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-700 text-sm transition-shadow"
+                            >
+                                <option value="">Select Session</option>
+                                {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Term</label>
+                            <select 
+                                value={selectedTerm} 
+                                onChange={(e) => setSelectedTerm(e.target.value)}
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-700 text-sm transition-shadow"
+                            >
+                                <option value="">Select Term</option>
+                                {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Class</label>
+                            <select 
+                                value={selectedClass} 
+                                onChange={(e) => {
+                                    setSelectedClass(e.target.value);
+                                    fetchStudents(e.target.value);
+                                }}
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-700 text-sm transition-shadow"
+                            >
+                                <option value="">Select Class</option>
+                                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="flex items-end">
+                            <button 
+                                onClick={handleGenerateAll} 
+                                disabled={generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0}
+                                className="w-full bg-indigo-600 text-white py-2.5 px-4 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm shadow-sm"
+                            >
+                                {generatingAll ? 'Generating...' : 'Generate For Whole Class'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {message && (
+                        <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-3 rounded-xl text-sm font-medium">
+                            {message}
+                        </div>
+                    )}
+                </div>
+
+                {/* Data Display Area */}
+                {loadingTable ? (
+                    <div className="flex justify-center items-center py-20 text-indigo-600 font-medium">
+                        Loading students...
+                    </div>
+                ) : (
+                    selectedClass ? (
+                        students.length > 0 ? (
+                            <>
+                                {/* Desktop View - Table */}
+                                <div className="hidden md:block bg-white rounded-2xl shadow-sm ring-1 ring-slate-200 overflow-hidden">
+                                    <table className="min-w-full divide-y divide-slate-200">
+                                        <thead className="bg-slate-50">
+                                            <tr>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student Name</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Admission No.</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Current PIN</th>
+                                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                                                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-slate-100">
+                                            {students.map(student => {
+                                                const latestPin = getStudentPin(student.id);
+                                                const isGeneratingThis = generatingStudentId === student.id;
+
+                                                return (
+                                                    <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm font-medium text-slate-900">{student.lastName} {student.firstName}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-slate-500">{student.admissionNumber}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {latestPin ? (
+                                                                <span className="text-sm font-bold text-indigo-600 tracking-wider px-2.5 py-1 bg-indigo-50 rounded-md">{latestPin.pin}</span>
+                                                            ) : (
+                                                                <span className="text-sm text-slate-400">—</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {!latestPin ? (
+                                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-600">No PIN</span>
+                                                            ) : latestPin.isUsed ? (
+                                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-rose-100 text-rose-700">Expired</span>
+                                                            ) : (
+                                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-700">Active</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                            <button 
+                                                                onClick={() => handleGenerateSingle(student.id)}
+                                                                disabled={isGeneratingThis || !selectedTerm || !selectedSession}
+                                                                className={`text-xs font-semibold py-2 px-3 rounded-lg transition-colors ${
+                                                                    isGeneratingThis 
+                                                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                                                                        : latestPin 
+                                                                            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
+                                                                            : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                                                }`}
+                                                            >
+                                                                {isGeneratingThis ? 'Generating...' : (latestPin ? 'Generate New' : 'Generate PIN')}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile View - Cards */}
+                                <div className="md:hidden space-y-4">
+                                    {students.map(student => {
+                                        const latestPin = getStudentPin(student.id);
+                                        const isGeneratingThis = generatingStudentId === student.id;
+
+                                        return (
+                                            <div key={student.id} className="bg-white p-5 rounded-2xl shadow-sm ring-1 ring-slate-200">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div>
+                                                        <h3 className="text-sm font-bold text-slate-900">{student.lastName} {student.firstName}</h3>
+                                                        <p className="text-xs text-slate-500 mt-0.5">{student.admissionNumber}</p>
+                                                    </div>
+                                                    <div className="text-right">
                                                         {!latestPin ? (
-                                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-500">No PIN</span>
+                                                            <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-600">No PIN</span>
                                                         ) : latestPin.isUsed ? (
-                                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-700">Expired</span>
+                                                            <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-rose-100 text-rose-700">Expired</span>
                                                         ) : (
-                                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+                                                            <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-700">Active</span>
                                                         )}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                        <button 
-                                                            onClick={() => handleGenerateSingle(student.id)}
-                                                            disabled={isGeneratingThis || !selectedTerm || !selectedSession}
-                                                            className={`text-xs font-semibold py-2 px-3 rounded-lg transition-colors ${
-                                                                isGeneratingThis 
-                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                                                    : latestPin 
-                                                                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
-                                                                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                                                            }`}
-                                                        >
-                                                            {isGeneratingThis ? 'Generating...' : (latestPin ? 'Generate New' : 'Generate PIN')}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Mobile View - Cards */}
-                            <div className="md:hidden space-y-4">
-                                {students.map(student => {
-                                    const latestPin = getStudentPin(student.id);
-                                    const isGeneratingThis = generatingStudentId === student.id;
-
-                                    return (
-                                        <div key={student.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <h3 className="text-sm font-bold text-gray-900">{student.lastName} {student.firstName}</h3>
-                                                    <p className="text-xs text-gray-500">{student.admissionNumber}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    {!latestPin ? (
-                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-500">No PIN</span>
-                                                    ) : latestPin.isUsed ? (
-                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-700">Expired</span>
-                                                    ) : (
-                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">Active</span>
-                                                    )}
+                                                
+                                                <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-3">
+                                                    <div>
+                                                        <span className="block text-xs text-slate-400 mb-1 font-medium">Current PIN</span>
+                                                        {latestPin ? (
+                                                            <span className="text-base font-bold text-indigo-600 tracking-wider">{latestPin.pin}</span>
+                                                        ) : (
+                                                            <span className="text-sm text-slate-400">—</span>
+                                                        )}
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => handleGenerateSingle(student.id)}
+                                                        disabled={isGeneratingThis || !selectedTerm || !selectedSession}
+                                                        className={`text-xs font-semibold py-2 px-4 rounded-lg transition-colors ${
+                                                            isGeneratingThis 
+                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                                                                : latestPin 
+                                                                    ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
+                                                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                                        }`}
+                                                    >
+                                                        {isGeneratingThis ? 'Generating...' : (latestPin ? 'New PIN' : 'Generate')}
+                                                    </button>
                                                 </div>
                                             </div>
-                                            
-                                            <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-3">
-                                                <div>
-                                                    <span className="block text-xs text-gray-400 mb-1">Current PIN</span>
-                                                    {latestPin ? (
-                                                        <span className="text-base font-bold text-indigo-600 tracking-wider">{latestPin.pin}</span>
-                                                    ) : (
-                                                        <span className="text-sm text-gray-400">—</span>
-                                                    )}
-                                                </div>
-                                                <button 
-                                                    onClick={() => handleGenerateSingle(student.id)}
-                                                    disabled={isGeneratingThis || !selectedTerm || !selectedSession}
-                                                    className={`text-xs font-semibold py-2 px-4 rounded-lg transition-colors ${
-                                                        isGeneratingThis 
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                                            : latestPin 
-                                                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
-                                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                                    }`}
-                                                >
-                                                    {isGeneratingThis ? 'Generating...' : (latestPin ? 'New PIN' : 'Generate')}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center">
+                                <h3 className="text-lg font-medium text-slate-900 mb-1">No Students Found</h3>
+                                <p className="text-sm text-slate-500">There are no students enrolled in this class.</p>
                             </div>
-                        </>
+                        )
                     ) : (
-                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
-                            <h3 className="text-lg font-medium text-gray-900 mb-1">No Students Found</h3>
-                            <p className="text-sm text-gray-500">There are no students enrolled in this class.</p>
+                        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center">
+                            <h3 className="text-sm font-medium text-slate-900">No class selected</h3>
+                            <p className="mt-1 text-sm text-slate-500">Select a class above to view students and generate PINs.</p>
                         </div>
                     )
-                ) : (
-                    <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
-                        <h3 className="text-sm font-medium text-gray-900">No class selected</h3>
-                        <p className="mt-1 text-sm text-gray-500">Select a class above to view students and generate PINs.</p>
-                    </div>
-                )
-            )}
+                )}
+            </div>
         </div>
     );
 }
