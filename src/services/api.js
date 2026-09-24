@@ -250,15 +250,23 @@ export const studentsAPI = {
         const response = await api.delete(`/students/recycle-bin/${id}/permanent`);
         return response.data;
     },
-    uploadProfileImage: async (studentId, file) => {
+    uploadProfileImage: async (studentId, file, config = {}) => {
         const formData = new FormData();
         formData.append('profileImage', file);
-        // Removed transformRequest hack, let Axios handle FormData automatically
-        const response = await api.post(`/admin/students/${studentId}/profile-image`, formData);
+
+        // ✅ FIXED: Removed /admin from URL and added transformRequest to handle FormData
+        const response = await api.post(`/students/${studentId}/profile-image`, formData, {
+            ...config,
+            transformRequest: [(data, headers) => {
+                delete headers['Content-Type'];
+                return data;
+            }]
+        });
         return response.data;
     },
     removeProfileImage: async (studentId) => {
-        const response = await api.delete(`/admin/students/${studentId}/profile-image`);
+        // ✅ FIXED: Removed /admin from URL
+        const response = await api.delete(`/students/${studentId}/profile-image`);
         return response.data;
     },
 };
@@ -453,8 +461,14 @@ export const studentAPI = {
     uploadProfileImage: async (file) => {
         const formData = new FormData();
         formData.append('profileImage', file);
-        // Removed manual Content-Type, let Axios handle FormData automatically
-        const response = await api.post('/student/profile-image', formData);
+
+        // ✅ FIXED: Added transformRequest to handle FormData
+        const response = await api.post('/student/profile-image', formData, {
+            transformRequest: [(data, headers) => {
+                delete headers['Content-Type'];
+                return data;
+            }]
+        });
         return response.data;
     },
     removeProfileImage: async () => {
@@ -1045,8 +1059,13 @@ export const siteInfoAPI = {
         return response.data;
     },
     upsertSiteInfo: async (formData) => {
-        // Removed manual Content-Type header
-        const response = await api.put('/site-information', formData);
+        // ✅ FIXED: Added transformRequest to handle FormData properly with Cloudinary
+        const response = await api.put('/site-information', formData, {
+            transformRequest: [(data, headers) => {
+                delete headers['Content-Type'];
+                return data;
+            }]
+        });
         return response.data;
     },
     deleteSiteInfo: async () => {
@@ -1195,6 +1214,10 @@ export const publicAPI = {
         const response = await api.get('/public/result-access-status');
         return response.data;
     },
+    getSiteInfo: async (schoolCode) => {
+        const response = await api.get('/public/site-info', { params: { schoolCode } });
+        return response.data;
+    }
 };
 
 // ============================================

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { siteInfoAPI } from '../../api';
+import { siteInfoAPI } from '../../services/api';
 
 export default function SiteSettings() {
     const [formData, setFormData] = useState({

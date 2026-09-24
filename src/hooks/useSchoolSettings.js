@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { siteInfoAPI } from '../api';
+import { siteInfoAPI } from '../services/api';
 
 // ✅ Base URL for constructing media URLs (uploads)
-export const API_BASE_URL = 'https://testbackend-5xui.onrender.com';
+export const API_BASE_URL = 'https://serverless-jet-ten.vercel.app';
 
 // ✅ Deep-scan any shape (string | {url} | {filename} | nested) for a usable URL
 const findUrlInValue = (value, depth = 0) => {
