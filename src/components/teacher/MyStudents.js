@@ -70,10 +70,10 @@ const getStudentId = (student) => {
   if (typeof student === 'string') return student.trim();
   
   if (typeof student === 'object' && !student.firstName) {
-    return normalizeId(student._id || student);
+    return normalizeId(student._id || student.id || student);
   }
   
-  return normalizeId(student._id);
+  return normalizeId(student._id || student.id);
 };
 
 // ─── Teacher Comment Templates ─────────────────────────────────────────────
@@ -253,13 +253,13 @@ const MyStudents = () => {
     enabled: !!user?._id,
   });
 
-  // ─── Fetch Terms ─�───────────────────────────────────────────────────────
+  // ─── Fetch Terms ────────────────────────────────────────────────────────
   const { data: termsData } = useQuery({
     queryKey: ['terms'],
     queryFn: termsAPI.getAll,
   });
 
-  // ─── Fetch Sessions ─�───────────────────────────────────────────────────
+  // ─── Fetch Sessions ────────────────────────────────────────────────────
   const { data: sessionsData } = useQuery({
     queryKey: ['sessions'],
     queryFn: sessionsAPI.getAll,
@@ -363,10 +363,10 @@ const MyStudents = () => {
   const attendanceMap = React.useMemo(() => {
     const map = {};
     attendanceCounts.forEach((record) => {
-      if (record.student_id) {
-        const normalizedId = normalizeId(record.student_id);
+      if (record.student_id || record.studentId) {
+        const normalizedId = normalizeId(record.student_id || record.studentId);
         if (normalizedId) {
-          map[normalizedId] = record.times_present || 0;
+          map[normalizedId] = record.times_present || record.timesPresent || 0;
         }
       }
     });
@@ -421,13 +421,14 @@ const MyStudents = () => {
     setSavingAttendance(prev => ({ ...prev, [studentId]: true }));
 
     try {
+      // ✅ FIXED: Mapped to Prisma expected camelCase Integers
       await attendanceAPI.upsert({
-        student_id: studentId,
-        class_id: classId,
+        studentId: parseInt(studentId),
+        classId: parseInt(classId),
         term: currentTerm,
         session: currentSession,
-        times_present: numVal,
-        teacher_id: user._id,
+        timesPresent: numVal,
+        teacherId: parseInt(user._id || user.id),
       });
       
       // Refetch attendance to update percentages immediately
@@ -453,7 +454,7 @@ const MyStudents = () => {
 
   React.useEffect(() => {
     if (classes.length === 1 && !expandedClass) {
-      setExpandedClass(classes[0]._id);
+      setExpandedClass(classes[0]._id || classes[0].id);
     }
   }, [classes.length]);
 
@@ -498,17 +499,20 @@ const MyStudents = () => {
     try {
       const studentId = getStudentId(commentModal.student);
       
+      // ✅ FIXED: Mapped to Prisma expected camelCase Integers
       const commentData = {
-        student_id: studentId || commentModal.student._id,
-        class_id: commentModal.classId,
-        teacher_id: user._id,
+        studentId: parseInt(studentId || commentModal.student.id || commentModal.student._id),
+        classId: parseInt(commentModal.classId),
+        teacherId: parseInt(user._id || user.id),
         comment: commentText.trim(),
         term: commentModal.term,
         session: commentModal.session,
       };
 
-      if (commentModal.existingComment?._id) {
-        await classTeacherCommentsAPI.update(commentModal.existingComment._id, commentData);
+      const commentId = commentModal.existingComment?._id || commentModal.existingComment?.id;
+
+      if (commentId) {
+        await classTeacherCommentsAPI.update(commentId, commentData);
       } else {
         await classTeacherCommentsAPI.create(commentData);
       }
@@ -526,12 +530,13 @@ const MyStudents = () => {
   };
 
   const deleteComment = async () => {
-    if (!commentModal.existingComment?._id) return;
+    const commentId = commentModal.existingComment?._id || commentModal.existingComment?.id;
+    if (!commentId) return;
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
 
     setIsSaving(true);
     try {
-      await classTeacherCommentsAPI.delete(commentModal.existingComment._id);
+      await classTeacherCommentsAPI.delete(commentId);
       await queryClient.invalidateQueries({
         queryKey: ['classTeacherComments', commentModal.classId],
       });
@@ -612,7 +617,7 @@ const MyStudents = () => {
             >
               <option value="">All Terms</option>
               {terms.map((term) => (
-                <option key={term._id} value={term.name}>
+                <option key={term._id || term.id} value={term.name}>
                   {term.name} {(term.isActive || term.is_active) ? '(Active)' : ''}
                 </option>
               ))}
@@ -624,7 +629,7 @@ const MyStudents = () => {
             >
               <option value="">All Sessions</option>
               {sessions.map((session) => (
-                <option key={session._id} value={session.name}>
+                <option key={session._id || session.id} value={session.name}>
                   {session.name} {(session.isActive || session.is_active) ? '(Active)' : ''}
                 </option>
               ))}
@@ -687,18 +692,19 @@ const MyStudents = () => {
       ) : (
         <div className="ms-classes">
           {classes.map((cls) => {
-            const isOpen = expandedClass === cls._id;
+            const classId = cls._id || cls.id;
+            const isOpen = expandedClass === classId;
             const studentCount = cls.students?.length || 0;
 
             return (
-              <div key={cls._id} className="ms-card">
+              <div key={classId} className="ms-card">
                 {/* Card Header */}
                 <div
                   className={`ms-card-head ${isOpen ? 'open' : ''}`}
-                  onClick={() => toggleExpandClass(cls._id)}
+                  onClick={() => toggleExpandClass(classId)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && toggleExpandClass(cls._id)}
+                  onKeyDown={(e) => e.key === 'Enter' && toggleExpandClass(classId)}
                 >
                   <div className="ms-card-info">
                     <h2>
@@ -795,7 +801,7 @@ const MyStudents = () => {
                                           max="200"
                                           defaultValue={timesPresent || ''}
                                           disabled={isSavingStudent}
-                                          onBlur={(e) => handleAttendanceSave(studentId, cls._id, e.target.value)}
+                                          onBlur={(e) => handleAttendanceSave(studentId, classId, e.target.value)}
                                           onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                               e.target.blur();
@@ -830,7 +836,7 @@ const MyStudents = () => {
                                         className={`ms-comment-btn ${hasComment ? 'edit' : 'add'}`}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          openCommentModal(student, cls._id);
+                                          openCommentModal(student, classId);
                                         }}
                                         title={hasComment ? 'Edit comment' : 'Add comment'}
                                       >
@@ -890,7 +896,7 @@ const MyStudents = () => {
                                     max="200"
                                     defaultValue={timesPresent || ''}
                                     disabled={isSavingStudent}
-                                    onBlur={(e) => handleAttendanceSave(studentId, cls._id, e.target.value)}
+                                    onBlur={(e) => handleAttendanceSave(studentId, classId, e.target.value)}
                                     onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
                                   />
                                   {isSavingStudent && <span className="ms-saving-spinner">Saving...</span>}
@@ -916,7 +922,7 @@ const MyStudents = () => {
 
                                 <button
                                   className={`ms-comment-btn ${hasComment ? 'edit' : 'add'} ms-mobile-comment-btn`}
-                                  onClick={() => openCommentModal(student, cls._id)}
+                                  onClick={() => openCommentModal(student, classId)}
                                 >
                                   {hasComment ? '✏️ Edit Comment' : '+ Add Comment'}
                                 </button>
@@ -980,7 +986,7 @@ const MyStudents = () => {
                   >
                     <option value="">Select Term</option>
                     {terms.map((term) => (
-                      <option key={term._id} value={term.name}>
+                      <option key={term._id || term.id} value={term.name}>
                         {term.name} {(term.isActive || term.is_active) ? '(Active)' : ''}
                       </option>
                     ))}
@@ -996,7 +1002,7 @@ const MyStudents = () => {
                   >
                     <option value="">Select Session</option>
                     {sessions.map((session) => (
-                      <option key={session._id} value={session.name}>
+                      <option key={session._id || session.id} value={session.name}>
                         {session.name} {(session.isActive || session.is_active) ? '(Active)' : ''}
                       </option>
                     ))}
