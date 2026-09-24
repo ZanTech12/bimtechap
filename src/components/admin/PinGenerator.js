@@ -14,7 +14,7 @@ export default function PinGenerator() {
     const [pins, setPins] = useState([]);
     const [loadingTable, setLoadingTable] = useState(false);
     const [generatingAll, setGeneratingAll] = useState(false);
-    const [generatingStudentId, setGeneratingStudentId] = useState(null); // Track which student is generating
+    const [generatingStudentId, setGeneratingStudentId] = useState(null);
     const [message, setMessage] = useState('');
 
     // 1. Fetch initial dropdown data on mount
@@ -48,7 +48,6 @@ export default function PinGenerator() {
             if (Array.isArray(studentsRes.data)) studentData = studentsRes.data;
             else if (studentsRes.data?.data && Array.isArray(studentsRes.data.data)) studentData = studentsRes.data.data;
             
-            // Sort students alphabetically
             studentData.sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
             setStudents(studentData);
         } catch (err) {
@@ -67,12 +66,7 @@ export default function PinGenerator() {
         setLoadingTable(true);
         setMessage('');
         try {
-            const params = { 
-                termId: selectedTerm, 
-                sessionId: selectedSession,
-                classId: selectedClass
-            };
-
+            const params = { termId: selectedTerm, sessionId: selectedSession, classId: selectedClass };
             const pinsRes = await api.get('/admin/result-pins/list', { params });
             setPins(pinsRes.data?.data || []);
         } catch (err) {
@@ -83,7 +77,6 @@ export default function PinGenerator() {
         }
     };
 
-    // Watch for dropdown changes to fetch PINs
     useEffect(() => {
         if (selectedSession && selectedTerm && selectedClass) {
             fetchExistingPins();
@@ -94,23 +87,15 @@ export default function PinGenerator() {
 
     // 4. Handle manual generation for the ENTIRE CLASS
     const handleGenerateAll = async () => {
-        if (!selectedClass || !selectedTerm || !selectedSession) {
-            setMessage('Please select Term, Session, and Class.');
-            return;
-        }
+        if (!selectedClass || !selectedTerm || !selectedSession) return;
 
         setGeneratingAll(true);
         setMessage('');
         try {
-            const payload = {
-                termId: selectedTerm,
-                sessionId: selectedSession,
-                classId: selectedClass
-            };
-
+            const payload = { termId: selectedTerm, sessionId: selectedSession, classId: selectedClass };
             const res = await api.post('/admin/result-pins/generate', payload);
             setMessage(res.data.message);
-            await fetchExistingPins(); // Refresh table
+            await fetchExistingPins(); 
         } catch (err) {
             setMessage(err.response?.data?.message || 'Failed to generate PINs');
         } finally {
@@ -118,22 +103,17 @@ export default function PinGenerator() {
         }
     };
 
-    // ✅ 5. Handle generation for a SINGLE STUDENT
+    // 5. Handle generation for a SINGLE STUDENT
     const handleGenerateSingle = async (studentId) => {
         if (!studentId || !selectedTerm || !selectedSession) return;
 
         setGeneratingStudentId(studentId);
         setMessage('');
         try {
-            const payload = {
-                termId: selectedTerm,
-                sessionId: selectedSession,
-                studentId: studentId
-            };
-
+            const payload = { termId: selectedTerm, sessionId: selectedSession, studentId: studentId };
             const res = await api.post('/admin/result-pins/generate', payload);
             setMessage(res.data.message);
-            await fetchExistingPins(); // Refresh table to show new PIN
+            await fetchExistingPins(); 
         } catch (err) {
             setMessage(err.response?.data?.message || 'Failed to generate PIN for student');
         } finally {
@@ -141,143 +121,230 @@ export default function PinGenerator() {
         }
     };
 
-    // ✅ Helper: Get the latest PIN for a specific student
     const getStudentPin = (studentId) => {
         const studentPins = pins.filter(p => p.studentId === studentId);
         if (studentPins.length === 0) return null;
-        // Sort by createdAt descending to get the latest
         return studentPins.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
     };
 
     return (
-        <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-            <style>{`
-                @keyframes spin { to { transform: rotate(360deg); } }
-            `}</style>
-
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '20px' }}>Result PIN Manager</h2>
-
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '30px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label style={{ fontSize: '14px', marginBottom: '5px' }}>Session</label>
-                    <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ccc', minWidth: '150px' }}>
-                        <option value="">Select Session</option>
-                        {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label style={{ fontSize: '14px', marginBottom: '5px' }}>Term</label>
-                    <select value={selectedTerm} onChange={(e) => setSelectedTerm(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ccc', minWidth: '150px' }}>
-                        <option value="">Select Term</option>
-                        {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label style={{ fontSize: '14px', marginBottom: '5px' }}>Class</label>
-                    <select 
-                        value={selectedClass} 
-                        onChange={(e) => {
-                            setSelectedClass(e.target.value);
-                            fetchStudents(e.target.value); // Fetch students for table
-                        }} 
-                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ccc', minWidth: '150px' }}
-                    >
-                        <option value="">Select Class</option>
-                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                </div>
-
-                <button 
-                    onClick={handleGenerateAll} 
-                    disabled={generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0}
-                    style={{ 
-                        background: (generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0) ? '#a5b4fc' : '#4f46e5', 
-                        color: 'white', 
-                        padding: '10px 20px', 
-                        borderRadius: '8px', 
-                        border: 'none', 
-                        cursor: 'pointer',
-                        height: 'fit-content'
-                    }}
-                >
-                    {generatingAll ? 'Generating All...' : 'Generate For Whole Class'}
-                </button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans">
+            <div className="mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Result PIN Manager</h2>
+                <p className="mt-1 text-sm text-gray-500">Generate and manage result access codes for classes or individual students.</p>
             </div>
 
-            {message && <div style={{ color: '#4f46e5', marginBottom: '15px', fontWeight: '500', background: '#eef2ff', padding: '10px', borderRadius: '6px' }}>{message}</div>}
+            {/* Filters Card */}
+            <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Session</label>
+                        <select 
+                            value={selectedSession} 
+                            onChange={(e) => setSelectedSession(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-gray-700"
+                        >
+                            <option value="">Select Session</option>
+                            {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                    </div>
 
-            {/* ✅ TABLE DISPLAYING ALL STUDENTS IN THE CLASS */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Term</label>
+                        <select 
+                            value={selectedTerm} 
+                            onChange={(e) => setSelectedTerm(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-gray-700"
+                        >
+                            <option value="">Select Term</option>
+                            {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
+                        <select 
+                            value={selectedClass} 
+                            onChange={(e) => {
+                                setSelectedClass(e.target.value);
+                                fetchStudents(e.target.value);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-gray-700"
+                        >
+                            <option value="">Select Class</option>
+                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="flex items-end">
+                        <button 
+                            onClick={handleGenerateAll} 
+                            disabled={generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0}
+                            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center"
+                        >
+                            {generatingAll ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Generating...
+                                </>
+                            ) : (
+                                'Generate For Whole Class'
+                            )}
+                        </button>
+                    </div>
+                </div>
+                
+                {message && (
+                    <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-3 rounded-lg text-sm font-medium">
+                        {message}
+                    </div>
+                )}
+            </div>
+
+            {/* Data Display Area */}
             {loadingTable ? (
-                <div style={{ textAlign: 'center', padding: '40px' }}>
-                    <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid #e5e7eb', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <div className="flex justify-center items-center py-20">
+                    <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                 </div>
             ) : (
-                selectedClass && students.length > 0 ? (
-                    <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ background: '#f9fafb', textAlign: 'left' }}>
-                                    <th style={{ padding: '12px' }}>Student Name</th>
-                                    <th style={{ padding: '12px' }}>Admission No.</th>
-                                    <th style={{ padding: '12px' }}>Current PIN</th>
-                                    <th style={{ padding: '12px' }}>Status</th>
-                                    <th style={{ padding: '12px', textAlign: 'right' }}>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                selectedClass ? (
+                    students.length > 0 ? (
+                        <>
+                            {/* Desktop View - Table */}
+                            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admission No.</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current PIN</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {students.map(student => {
+                                            const latestPin = getStudentPin(student.id);
+                                            const isGeneratingThis = generatingStudentId === student.id;
+
+                                            return (
+                                                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-medium text-gray-900">{student.lastName} {student.firstName}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-500">{student.admissionNumber}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        {latestPin ? (
+                                                            <span className="text-sm font-bold text-indigo-600 tracking-wider px-2 py-1 bg-indigo-50 rounded">{latestPin.pin}</span>
+                                                        ) : (
+                                                            <span className="text-sm text-gray-400">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        {!latestPin ? (
+                                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-500">No PIN</span>
+                                                        ) : latestPin.isUsed ? (
+                                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-700">Expired</span>
+                                                        ) : (
+                                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                        <button 
+                                                            onClick={() => handleGenerateSingle(student.id)}
+                                                            disabled={isGeneratingThis || !selectedTerm || !selectedSession}
+                                                            className={`text-xs font-semibold py-2 px-3 rounded-lg transition-colors ${
+                                                                isGeneratingThis 
+                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                                                    : latestPin 
+                                                                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                                                                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                                            }`}
+                                                        >
+                                                            {isGeneratingThis ? 'Generating...' : (latestPin ? 'Generate New' : 'Generate PIN')}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile View - Cards */}
+                            <div className="md:hidden space-y-4">
                                 {students.map(student => {
                                     const latestPin = getStudentPin(student.id);
                                     const isGeneratingThis = generatingStudentId === student.id;
 
                                     return (
-                                        <tr key={student.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '12px' }}>{student.lastName} {student.firstName}</td>
-                                            <td style={{ padding: '12px' }}>{student.admissionNumber}</td>
-                                            <td style={{ padding: '12px', fontWeight: 'bold', color: '#4f46e5', letterSpacing: '1px' }}>
-                                                {latestPin ? latestPin.pin : '—'}
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
-                                                {!latestPin ? (
-                                                    <span style={{ background: '#f3f4f6', color: '#6b7280', padding: '4px 8px', borderRadius: '6px', fontSize: '12px' }}>No PIN</span>
-                                                ) : latestPin.isUsed ? (
-                                                    <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '6px', fontSize: '12px' }}>Expired/Used</span>
-                                                ) : (
-                                                    <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 8px', borderRadius: '6px', fontSize: '12px' }}>Active</span>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: '12px', textAlign: 'right' }}>
+                                        <div key={student.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-gray-900">{student.lastName} {student.firstName}</h3>
+                                                    <p className="text-xs text-gray-500">{student.admissionNumber}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    {!latestPin ? (
+                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-500">No PIN</span>
+                                                    ) : latestPin.isUsed ? (
+                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-700">Expired</span>
+                                                    ) : (
+                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-3">
+                                                <div>
+                                                    <span className="block text-xs text-gray-400 mb-1">Current PIN</span>
+                                                    {latestPin ? (
+                                                        <span className="text-base font-bold text-indigo-600 tracking-wider">{latestPin.pin}</span>
+                                                    ) : (
+                                                        <span className="text-sm text-gray-400">—</span>
+                                                    )}
+                                                </div>
                                                 <button 
                                                     onClick={() => handleGenerateSingle(student.id)}
                                                     disabled={isGeneratingThis || !selectedTerm || !selectedSession}
-                                                    style={{
-                                                        background: isGeneratingThis ? '#e5e7eb' : (latestPin ? '#f3f4f6' : '#4f46e5'),
-                                                        color: isGeneratingThis ? '#6b7280' : (latestPin ? '#374151' : 'white'),
-                                                        border: '1px solid #d1d5db',
-                                                        padding: '6px 12px',
-                                                        borderRadius: '6px',
-                                                        cursor: isGeneratingThis ? 'not-allowed' : 'pointer',
-                                                        fontSize: '13px',
-                                                        fontWeight: '500'
-                                                    }}
+                                                    className={`text-xs font-semibold py-2 px-4 rounded-lg transition-colors ${
+                                                        isGeneratingThis 
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                                            : latestPin 
+                                                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                                    }`}
                                                 >
-                                                    {isGeneratingThis ? 'Generating...' : (latestPin ? 'Generate New' : 'Generate PIN')}
+                                                    {isGeneratingThis ? 'Generating...' : (latestPin ? 'New PIN' : 'Generate')}
                                                 </button>
-                                            </td>
-                                        </tr>
+                                            </div>
+                                        </div>
                                     );
                                 })}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    selectedClass && (
-                        <div style={{ background: '#f9fafb', border: '2px dashed #e5e7eb', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
-                            <h3 style={{ fontSize: '1.1rem', color: '#374151', marginBottom: '5px' }}>No Students Found</h3>
-                            <p style={{ color: '#888', fontSize: '0.85rem' }}>There are no students enrolled in this class.</p>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
+                            <h3 className="text-lg font-medium text-gray-900 mb-1">No Students Found</h3>
+                            <p className="text-sm text-gray-500">There are no students enrolled in this class.</p>
                         </div>
                     )
+                ) : (
+                    <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">No class selected</h3>
+                        <p className="mt-1 text-sm text-gray-500">Select a class above to view students and generate PINs.</p>
+                    </div>
                 )
             )}
         </div>
