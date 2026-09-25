@@ -105,6 +105,100 @@ export default function PinGenerator() {
         return studentPins.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
     };
 
+    // ✅ NEW: Handle Printing All PINs
+    const handlePrintPins = () => {
+        const termName = terms.find(t => t.id === selectedTerm)?.name || '';
+        const sessionName = sessions.find(s => s.id === selectedSession)?.name || '';
+        const className = classes.find(c => c.id === selectedClass)?.name || '';
+
+        const printableContent = students.map(student => {
+            const latestPin = getStudentPin(student.id);
+            return `
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #eee;">${student.lastName} ${student.firstName}</td>
+                    <td style="padding: 10px; border: 1px solid #eee;">${student.admissionNumber}</td>
+                    <td style="padding: 10px; border: 1px solid #eee; font-weight: bold; letter-spacing: 2px; color: #4f46e5;">
+                        ${latestPin ? latestPin.pin : 'NOT GENERATED'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Result PINs - ${className}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                        h1 { margin: 0 0 5px 0; font-size: 24px; }
+                        h2 { margin: 0 0 20px 0; font-size: 16px; color: #666; font-weight: normal; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th { background: #f8fafc; padding: 10px; border: 1px solid #eee; text-align: left; font-size: 14px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Result Access PINs</h1>
+                    <h2>Class: ${className} | Term: ${termName} | Session: ${sessionName}</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Admission No.</th>
+                                <th>PIN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${printableContent}
+                        </tbody>
+                    </table>
+                    <script>
+                        window.onload = function() { window.print(); }
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    // ✅ NEW: Handle Printing Single Student PIN
+    const handlePrintSinglePin = (student) => {
+        const latestPin = getStudentPin(student.id);
+        const termName = terms.find(t => t.id === selectedTerm)?.name || '';
+        const sessionName = sessions.find(s => s.id === selectedSession)?.name || '';
+        const className = classes.find(c => c.id === selectedClass)?.name || '';
+
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>PIN Slip - ${student.firstName}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f8fafc; }
+                        .slip { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+                        h1 { font-size: 20px; margin: 0 0 10px 0; color: #4f46e5; }
+                        p { margin: 5px 0; color: #64748b; font-size: 14px; }
+                        .pin-box { margin: 20px 0; padding: 15px; background: #eef2ff; border-radius: 8px; font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #4338ca; }
+                    </style>
+                </head>
+                <body>
+                    <div class="slip">
+                        <h1>Result Checker PIN</h1>
+                        <p><strong>${student.lastName} ${student.firstName}</strong></p>
+                        <p>Admission No: ${student.admissionNumber}</p>
+                        <p>Class: ${className} | ${termName} | ${sessionName}</p>
+                        <div class="pin-box">${latestPin ? latestPin.pin : 'NOT GENERATED'}</div>
+                        <p style="font-size: 12px; color: #94a3b8;">Please keep this PIN safe. You will need it to check your results.</p>
+                    </div>
+                    <script>
+                        window.onload = function() { window.print(); }
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     return (
         <div className="pg-container">
             <style>{`
@@ -121,9 +215,14 @@ export default function PinGenerator() {
                 .pg-input { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; color: #334155; outline: none; transition: all 0.2s; box-sizing: border-box; }
                 .pg-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
                 
-                .pg-btn-primary { background: #4f46e5; color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%; height: 42px; font-size: 14px; }
+                .pg-btn-group { display: flex; gap: 10px; }
+                .pg-btn-primary { background: #4f46e5; color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: background 0.2s; flex: 1; height: 42px; font-size: 14px; }
                 .pg-btn-primary:hover:not(:disabled) { background: #4338ca; }
                 .pg-btn-primary:disabled { background: #c7d2fe; cursor: not-allowed; }
+                
+                .pg-btn-print { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: background 0.2s; height: 42px; font-size: 14px; }
+                .pg-btn-print:hover:not(:disabled) { background: #e2e8f0; }
+                .pg-btn-print:disabled { background: #f8fafc; color: #cbd5e1; cursor: not-allowed; }
                 
                 .pg-message { margin-top: 16px; background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; }
                 
@@ -156,12 +255,13 @@ export default function PinGenerator() {
                 .pg-mobile-name { font-size: 15px; font-weight: 700; margin: 0; }
                 .pg-mobile-adm { font-size: 12px; color: #64748b; margin: 4px 0 0 0; }
                 .pg-mobile-bottom { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 16px; }
+                .pg-mobile-actions { display: flex; gap: 8px; align-items: center; }
 
                 @media (min-width: 640px) {
                     .pg-grid { grid-template-columns: 1fr 1fr; }
                 }
                 @media (min-width: 1024px) {
-                    .pg-grid { grid-template-columns: 1fr 1fr 1fr 1fr; align-items: end; }
+                    .pg-grid { grid-template-columns: 1fr 1fr 1fr auto; align-items: end; }
                     .pg-container { padding: 40px; }
                 }
                 
@@ -205,9 +305,15 @@ export default function PinGenerator() {
                             </select>
                         </div>
 
-                        <button className="pg-btn-primary" onClick={handleGenerateAll} disabled={generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0}>
-                            {generatingAll ? 'Generating...' : 'Generate For Class'}
-                        </button>
+                        <div className="pg-btn-group">
+                            <button className="pg-btn-primary" onClick={handleGenerateAll} disabled={generatingAll || !selectedClass || !selectedTerm || !selectedSession || students.length === 0}>
+                                {generatingAll ? 'Generating...' : 'Generate For Class'}
+                            </button>
+                            {/* ✅ NEW: Print All Button */}
+                            <button className="pg-btn-print" onClick={handlePrintPins} disabled={students.length === 0}>
+                                Print All
+                            </button>
+                        </div>
                     </div>
 
                     {message && <div className="pg-message">{message}</div>}
@@ -285,13 +391,23 @@ export default function PinGenerator() {
                                                         <span style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>CURRENT PIN</span>
                                                         {latestPin ? <span className="pg-pin-badge">{latestPin.pin}</span> : <span style={{ color: '#cbd5e1' }}>—</span>}
                                                     </div>
-                                                    <button 
-                                                        className={`pg-btn-action ${isGeneratingThis ? 'pg-btn-loading' : latestPin ? 'pg-btn-new' : 'pg-btn-generate'}`}
-                                                        onClick={() => handleGenerateSingle(student.id)} 
-                                                        disabled={isGeneratingThis || !selectedTerm || !selectedSession}
-                                                    >
-                                                        {isGeneratingThis ? 'Generating...' : (latestPin ? 'New PIN' : 'Generate')}
-                                                    </button>
+                                                    <div className="pg-mobile-actions">
+                                                        {/* ✅ NEW: Individual Print Button for Mobile */}
+                                                        <button 
+                                                            className="pg-btn-action pg-btn-new"
+                                                            onClick={() => handlePrintSinglePin(student)} 
+                                                            disabled={!latestPin}
+                                                        >
+                                                            Print
+                                                        </button>
+                                                        <button 
+                                                            className={`pg-btn-action ${isGeneratingThis ? 'pg-btn-loading' : latestPin ? 'pg-btn-new' : 'pg-btn-generate'}`}
+                                                            onClick={() => handleGenerateSingle(student.id)} 
+                                                            disabled={isGeneratingThis || !selectedTerm || !selectedSession}
+                                                        >
+                                                            {isGeneratingThis ? 'Generating...' : (latestPin ? 'New PIN' : 'Generate')}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
