@@ -242,8 +242,9 @@ export const studentsAPI = {
         const response = await api.get('/students/recycle-bin');
         return response.data;
     },
-    restoreFromRecycleBin: async (id) => {
-        const response = await api.patch(`/students/recycle-bin/${id}/restore`);
+       restoreFromRecycleBin: async (id) => {
+        // ✅ FIXED: Changed to PUT /students/restore/:id to match backend route
+        const response = await api.put(`/students/restore/${id}`);
         return response.data;
     },
       permanentlyDelete: async (id) => {
