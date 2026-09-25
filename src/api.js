@@ -308,11 +308,11 @@ export const studentsAPI = {
         return response.data;
     },
 
-    permanentlyDelete: async (id) => {
-        const response = await api.delete(`/students/recycle-bin/${id}/permanent`);
+      permanentlyDelete: async (id) => {
+        // ✅ FIXED: URL changed to match the backend route (/students/permanent/:id)
+        const response = await api.delete(`/students/permanent/${id}`);
         return response.data;
     },
-
         // ==========================================
     // PROFILE IMAGE MANAGEMENT (ADMIN)
     // ==========================================
